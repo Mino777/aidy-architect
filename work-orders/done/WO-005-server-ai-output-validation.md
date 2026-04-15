@@ -2,7 +2,7 @@
 
 **담당**: server
 **우선순위**: P2-보통
-**상태**: in-progress
+**상태**: done
 **의존**: WO-004 완료 (AI Client Wrapper 위에 검증 레이어 추가)
 
 ## 목표

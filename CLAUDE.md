@@ -128,6 +128,12 @@ Compound: /compound (회고 + 솔루션 + ADR)
 - docs/solutions/: 삽질 기록
 - Compound Engineering: 매 스프린트 후 /compound
 
+## Design System
+Always read DESIGN.md before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+In QA mode, flag any code that doesn't match DESIGN.md.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill

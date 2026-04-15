@@ -2,7 +2,7 @@
 
 **담당**: server
 **우선순위**: P1
-**상태**: in-progress
+**상태**: done
 **의존**: WO-004 완료 (AI 안정성), API Contract v0.2.0
 **참조**: ADR-005, DESIGN.md
 

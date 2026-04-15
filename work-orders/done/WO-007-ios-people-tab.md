@@ -2,7 +2,7 @@
 
 **담당**: ios
 **우선순위**: P1
-**상태**: in-progress
+**상태**: done
 **의존**: WO-006 완료 (서버 People API)
 **참조**: ADR-005, DESIGN.md, API Contract § 4
 

@@ -69,16 +69,32 @@ work-orders/
 
 ## Architect가 사용하는 명령
 
+### Slash Commands (행동 레벨 가드)
+```
+/dispatch    — WO 활성화 + 워커에게 전송 (부분 실행 불가)
+/gate-1      — 스펙 준수 검증 (코드 line-by-line, 메타데이터 신뢰 금지)
+/gate-2      — 통합 검증 (빌드 + 테스트 + 크로스 프로젝트 호환성)
+/cross-session-review — 워커 결과물 크로스 검증 (Journal 019 프로토콜)
+/monitor     — 전체 워커 상태 + WO 현황 모니터링
+/compound    — WO 완료 후 회고 + 솔루션 + 의사결정 문서화
+/autoceo     — 풀 자동 스프린트 (Research→기획→명령→개발→QA→Compound × N라운드)
+/ingest      — 외부 URL/키워드 → 교차 검증 → Aidy에 적용 가능한 패턴 흡수
+```
+
+### CLI 명령
 ```bash
-# 워커 프로젝트 상태 확인
-ls work-orders/in-progress/
-ls work-orders/backlog/
+./architect-cli.sh wo <번호>            # WO 활성화 (backlog → in-progress)
+./architect-cli.sh wo-done <번호>       # WO 완료 (in-progress → done)
+./architect-cli.sh send <워커> "<msg>"  # tmux로 워커에게 명령
+./architect-cli.sh status               # WO 현황
+```
 
-# 새 작업 지시서 발행
-# → work-orders/backlog/ 에 마크다운 생성
-
-# 검증
-# → 각 워커 프로젝트의 git log / diff 확인
+### 워크플로 (4단계 루프)
+```
+Plan:     WO 발행 + /dispatch
+Work:     워커가 구현
+Review:   /gate-1 → /gate-2 → /cross-session-review
+Compound: /compound (회고 + 솔루션 + ADR)
 ```
 
 ## 지식 저장소 연동

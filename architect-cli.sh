@@ -50,11 +50,34 @@ tmux_setup() {
     echo -e "  Ctrl+B → 3: android"
 }
 
+# pane 매핑 (architect 윈도우에 합친 경우)
+# pane 0: architect, pane 1: server, pane 2: ios, pane 3: android
+get_pane_index() {
+    case "$1" in
+        server)  echo 1 ;;
+        ios)     echo 2 ;;
+        android) echo 3 ;;
+        *)       echo "" ;;
+    esac
+}
+
 tmux_send() {
     local target=$1
     local prompt=$2
     echo -e "${GREEN}[Architect → $target]${NC} 전송 중..."
-    tmux send-keys -t "$TMUX_SESSION:$target" "$prompt" C-m
+
+    local pane_idx
+    pane_idx=$(get_pane_index "$target")
+
+    # 먼저 윈도우로 시도, 없으면 pane으로 fallback
+    if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${target}$"; then
+        tmux send-keys -t "$TMUX_SESSION:$target" "$prompt" C-m
+    elif [[ -n "$pane_idx" ]]; then
+        tmux send-keys -t "$TMUX_SESSION:architect.${pane_idx}" "$prompt" C-m
+    else
+        echo -e "${RED}[오류] $target 윈도우/pane을 찾을 수 없습니다.${NC}"
+        exit 1
+    fi
     echo -e "${GREEN}[완료]${NC}"
 }
 

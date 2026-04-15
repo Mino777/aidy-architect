@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'git commit' 2>/dev/null; then echo '⚠️ ARCHITECT GATE: 커밋 전 확인 — work-order 상태가 in-progress인가? gates/ 검증을 완료했는가?'; fi",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'wo-done' 2>/dev/null; then echo '📦 COMPOUND: WO 완료! /compound 실행하여 회고 + 솔루션 + 의사결정 문서화하세요.'; fi",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

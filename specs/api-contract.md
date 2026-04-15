@@ -175,6 +175,7 @@
 | MEMORY_NOT_FOUND | 404 | 메모리 없음 |
 | DUPLICATE_EMAIL | 409 | 이메일 중복 |
 | RATE_LIMITED | 429 | 요청 초과 |
+| AI_TIMEOUT | 504 | AI 응답 시간 초과 |
 | INTERNAL_ERROR | 500 | 서버 오류 |
 
 ---
@@ -184,3 +185,4 @@
 | 버전 | 날짜 | 변경 |
 |------|------|------|
 | v0.1 | 2026-04-15 | 초기 스펙 (Chat + Memory + Health) |
+| v0.1.1 | 2026-04-16 | AI_TIMEOUT 에러 코드 추가 (WO-004) |

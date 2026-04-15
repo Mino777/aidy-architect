@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.1] — 2026-04-16
+
+### WO 발행
+- `WO-004` — AI 호출 안정성 (Circuit Breaker + Timeout + Retry + 비용 로깅)
+- `WO-005` — AI 출력 런타임 검증 (5-Layer 방어 체계, WO-004 의존)
+- `api-contract.md` v0.1.1 — AI_TIMEOUT (504) 에러 코드 추가
+- `specs/decisions/BACKLOG.md` — P-004~006 큐 등록
+
+### /ingest: ai-study wiki 흡수 (83 entries → 12 패턴 발견)
+- `.claudeignore` — architect 프로젝트 컨텍스트 오염 방지 (done/ WO, lock, .git 제외)
+- `CLAUDE.md` — 토큰 최적화 규칙 (model routing, cache 5분 TTL, prefix 다이어트)
+- `CLAUDE.md` — 성숙도 Ladder 추가 (현재 Stage 3, Stage 4 실험 중)
+- `docs/compound-principles.md` — Compound Engineering 12 원칙 Aidy 적용 문서
+- `specs/decisions/BACKLOG.md` — P-004~006 추가 (Circuit Breaker, 5-Layer 검증, Multi-Agent Pipeline)
+- `inbox/ingest-2026-04-16.md` — 워커 공유 알림 (서버 WO 후보 + iOS/Android 확인사항)
+
 ## [0.2.0] — 2026-04-16
 
 ### 하네스 엔지니어링

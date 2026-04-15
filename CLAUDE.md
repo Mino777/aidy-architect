@@ -97,6 +97,31 @@ Review:   /gate-1 → /gate-2 → /cross-session-review
 Compound: /compound (회고 + 솔루션 + ADR)
 ```
 
+## 토큰 최적화 규칙
+
+### 모델 라우팅
+- 서브에이전트 frontmatter: 탐색/조회 → `model: haiku`, 검증/판단 → `model: sonnet`
+- Explore subagent로 코드 탐색 격리 (새 컨텍스트, haiku 전용)
+- `/compact` 습관화 — 대화 길어지면 압축
+
+### 캐시 보존
+- 활성 세션 중 CLAUDE.md 수정 금지 (캐시 전체 무효화 + 1.25x 오버헤드)
+- 5분 TTL — 휴식 전 세션 정리, 돌아와서 새 세션 시작
+
+### Prefix 다이어트
+- CLAUDE.md ≤ 200줄 유지, 상세는 슬래시 커맨드로 분리
+- `.claudeignore`로 done/ WO, lock 파일 등 제외
+
+## 성숙도 Ladder (Compound Engineering)
+
+| Stage | 상태 | 현재 |
+|-------|------|------|
+| 1. 수동 | 사람이 기억해서 수행 | |
+| 2. 리마인드 | 훅/알림이 상기 | |
+| 3. 슬래시 커맨드 | /compound 등으로 통합 | **← 현재** |
+| 4. 자동 루프 | /autoceo가 N 라운드 반복 | 실험 중 |
+| 5. 완전 자율 | 입력→실행→박제→다음 사이클 | 목표 |
+
 ## 지식 저장소 연동
 
 - ai-study 허브: 개발 과정 Journal 박제

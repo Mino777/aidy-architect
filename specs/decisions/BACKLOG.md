@@ -9,7 +9,12 @@
 | P-001 | JWT 인증 방식 (v0.2) | P1 | WO-004 예정 | 서버 + 클라이언트 모두 영향 |
 | P-002 | 실시간 채팅 (WebSocket vs SSE) | P2 | 미정 | 스트리밍 응답 필요 시 |
 | P-003 | 메모리 추출 AI 프롬프트 최적화 | P1 | WO-001 후속 | 추출 정확도 개선 |
+| P-004 | AI 호출 Circuit Breaker + Multi-Provider Fallback | P2 | 서버 WO 예정 | ai-study Journal 006 패턴 이식. timeout+retry+에러분류 |
+| P-005 | AI 출력 런타임 검증 (5-Layer 패턴) | P2 | 서버 WO 예정 | ai-study Journal 009-023 패턴. Layer 1 텍스트가드 → Layer 5 LLM-as-Judge |
+| P-006 | Multi-Agent Pipeline 설계 (메모리 추출) | P3 | ADR 필요 | 단일 LLM → 전문화된 에이전트 파이프라인 검토 |
 
 ## 결정 완료 → ADR 이동
 
-결정이 내려지면 `specs/decisions/NNN-제목.md`로 ADR 생성 후 여기서 삭제.
+| ID | ADR | 결정 |
+|----|-----|------|
+| P-006 | ADR-004 | 현행 유지 + WO-005 검증 강화. 추출 실패율 >15% 시 2단 파이프라인 전환 |

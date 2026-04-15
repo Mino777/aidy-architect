@@ -1,0 +1,20 @@
+# Aidy Architect .claudeignore
+# 컨텍스트 오염 방지 — 관제에 불필요한 파일 제외
+
+# Git
+.git/
+
+# Shell scripts 내부 (CLAUDE.md에서 사용법만 알면 됨)
+# architect-cli.sh는 제외하지 않음 (dispatch/gate에서 참조)
+
+# 임시 파일
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 완료된 WO (done/ 은 회고에서만 참조, 평소 로드 불필요)
+work-orders/done/
+
+# Lock 파일
+.claude/scheduled_tasks.lock

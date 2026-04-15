@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0] — 2026-04-16
+
+### 관계 메모리 Phase 1 (10라운드 autoceo)
+
+**설계 파이프라인** (R1-R3)
+- /office-hours → /plan-ceo-review → /plan-eng-review → /plan-design-review → /design-consultation
+- DESIGN.md 생성 (Organic/Natural, 딥 그린 #2D7D46, Pretendard)
+- API Contract v0.2.0 — People 엔드포인트 + 피드백 API + personDetail 확장
+- ADR-005 — 관계 메모리 아키텍처 (B+C 합성, Phase 1/2 분리)
+
+**서버 (R4, R6, R8)**
+- WO-006: Person/PersonMemory/MemoryFeedback 3개 테이블 + Flyway 마이그레이션
+- WO-006: GET /memories/people + POST /memories/{id}/feedback
+- WO-006: LLM 프롬프트 강화 (personDetail 추출)
+- WO-005: AI 출력 5-Layer 런타임 검증
+
+**iOS (R2, R5, R6)**
+- WO-007: 피플 탭 (리스트 행 + 이니셜 아바타 + 상세 타임라인)
+- WO-007: 기억 확인 바텀시트 + 피드백 버튼 (맞아/틀려)
+- R2: 메모리 삭제 + 설정 화면 (Android 동기화)
+
+**Android (R5, R6)**
+- WO-008: 피플 탭 (리스트 행 + 이니셜 아바타 + 상세 타임라인)
+- WO-008: BottomSheet 확인 카드 + 피드백 버튼
+
+**Gate 통과**: WO-002~008 전부 Gate 1 + Gate 2 PASS → done
+
 ## [0.2.1] — 2026-04-16
 
 ### WO 발행
@@ -71,6 +98,10 @@
 | WO-001 | Chat API + Memory 파이프라인 전체 구현 |
 | R1 | harness 파일 + ChatController/MemoryService 테스트 |
 | R2 | AI 타임아웃, CORS, 500 에러 로깅 |
+| WO-004 | AI 호출 안정성 — 에러 분류 + 재시도 + 타임아웃 |
+| R4 | 관계 메모리 DB + 엔티티 + PersonService + People API |
+| R6 | displayName fallback 수정 |
+| R8 | AI 출력 5-Layer 런타임 검증 |
 
 ### aidy-ios
 | 커밋 | 내용 |
@@ -78,6 +109,9 @@
 | WO-002 | 채팅 화면 서버 연동 + 히스토리 |
 | Gate 재작업 | categories + health + error 파싱 |
 | R1 | harness 파일 + Memory 화면 카테고리 필터 |
+| R2 | 메모리 빈 화면 + 삭제 + 설정 화면 |
+| R5 | 피플 탭 — 인물 목록 + 상세 타임라인 + 피드백 |
+| R6 | 바텀시트 확인 카드 + relationship + 터치타겟 |
 
 ### aidy-android
 | 커밋 | 내용 |
@@ -86,3 +120,5 @@
 | Gate 재작업 | delete + categories + health + error 파싱 |
 | R1 | harness 파일 + Memory 탭 (카테고리+리스트+삭제) |
 | R2 | Settings 화면 (서버 URL 동적 변경 + 닉네임) |
+| R5 | 피플 탭 — 인물 목록 + 상세 + 확인카드 + 피드백 |
+| R6 | PersonRow 날짜 표시 수정 |

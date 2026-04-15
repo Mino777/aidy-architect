@@ -1,93 +1,83 @@
-# Architect 핸드오프 — VS Code → tmux 전환
-
-> **작성일**: 2026-04-15 23:15
-> **상황**: VS Code 세션 종료 → tmux 관제 센터로 이관
+# Architect 핸드오프 — 2026-04-16 세션 종료
 
 ## 현재 상태
 
-### 완료된 것
-1. **aidy-architect** — 관제 센터 구축 완료
-   - `specs/api-contract.md` — API Contract v0.1 (Chat + Memory + Health)
-   - `specs/conventions.md` — 네이밍/코딩 컨벤션
-   - `specs/decisions/` — ADR 2건 (기술스택 + 아키텍처 패턴)
-   - `work-orders/backlog/` — WO-001(서버), WO-002(iOS), WO-003(Android)
-   - `gates/gate-checklist.md` — 검증 게이트 2단
-   - `architect-cli.sh` — tmux 오케스트레이터 (setup/send/run/wo)
-   - `orchestrator.sh` — tmux 세션 관리
-   - `dispatch.sh` — WO 기반 자동 프롬프트 전송
+### tmux 레이아웃
+```
+tmux attach -t aidy
+┌─────────────────┬──────────────────┐
+│ pane 0:         │ pane 1: server   │
+│ ARCHITECT       │ Claude (idle)    │
+│ (135x55)        ├──────────────────┤
+│                 │ pane 2: ios      │
+│                 │ Claude (idle)    │
+│                 ├──────────────────┤
+│                 │ pane 3: android  │
+│                 │ Claude (idle)    │
+└─────────────────┴──────────────────┘
+```
+- 모든 워커: `--dangerously-skip-permissions` 모드
+- 세션 유지 중 (재시작 불필요)
 
-2. **aidy-server** — Spring Boot + Kotlin 초기 셋업 (BUILD SUCCESS)
-   - Entity: User, ChatMessage, Memory
-   - Controller: Chat, Memory, Health
-   - Service: ChatService, MemoryService, AiService (Claude API)
-   - Flyway migration V1
-   - Docker Compose PostgreSQL
-   - Architect 계약 CLAUDE.md 연동
+### 프로젝트 진행도
 
-3. **aidy-ios** — Tuist + TCA + SwiftUI 초기 셋업
-   - Feature: Chat, Memory, Settings (TCA Reducer 패턴)
-   - APIClient (TCA DependencyClient)
-   - Model: ChatMessage, MemoryItem
-   - `tuist install` 성공 (SPM 의존성)
-   - `tuist generate` 는 Xcode 설치 후 실행 필요
-   - Architect 계약 CLAUDE.md 연동
+| 화면 | Server | iOS | Android |
+|------|--------|-----|---------|
+| Chat | ✅ 완료 | ✅ 완료 | ✅ 완료 |
+| Memory | ✅ API 완료 | 🟡 카테고리 필터만 | ✅ 리스트+삭제 완료 |
+| Settings | — | ❌ 미구현 | ✅ 완료 |
+| Auth | ❌ v0.2 | ❌ v0.2 | ❌ v0.2 |
 
-4. **aidy-android** — Kotlin + Jetpack Compose 초기 셋업
-   - Screen: Chat, Memory, Settings (Compose)
-   - ViewModel: ChatViewModel
-   - Retrofit API service
-   - Material 3 테마
-   - Android Studio에서 열기 필요
-   - Architect 계약 CLAUDE.md 연동
+### WO 현황
+- WO-001 (server): **done** ✅
+- WO-002 (ios): Gate 1 PASS, Gate 2 미실행 (in-progress)
+- WO-003 (android): Gate 1 PASS, Gate 2 미실행 (in-progress)
 
-5. **ai-study** — 보안 스프린트 완료 + Compound 문서화
-   - 보안 7건 수정 (auth + headers + CVE + rate limit + etc)
-   - n8n 리서치 문서
-   - 83 엔트리
+### GitHub (모두 private, push 완료)
+- https://github.com/Mino777/aidy-architect
+- https://github.com/Mino777/aidy-server
+- https://github.com/Mino777/aidy-ios
+- https://github.com/Mino777/aidy-android
 
-### tmux 세션 상태
-- `tmux attach -t aidy` 로 접속
-- 윈도우 0: architect (Claude Code 미실행)
-- 윈도우 1: server (Claude Code 실행 중)
-- 윈도우 2: ios (Claude Code 실행 중)
-- 윈도우 3: android (Claude Code 실행 중)
+## 다음 세션 시작 방법
 
-## 다음 세션 (tmux architect) 시작 순서
-
-### 1. tmux 접속
 ```bash
 tmux attach -t aidy
-```
-
-### 2. architect 윈도우에서 Claude Code 시작
-```
-Ctrl+B → 0
+# pane 0에서 Claude Code 시작
 claude
 ```
 
-### 3. Claude Code에 이렇게 입력
-```
-~/Develop/aidy-architect/CLAUDE.md 읽고, HANDOFF.md 읽어줘.
-나는 Architect(설계자) 역할이야.
-tmux 윈도우 1(server), 2(ios), 3(android)에 워커 Claude가 떠있어.
-architect-cli.sh로 워커에게 명령을 보낼 수 있어.
-WO-001부터 시작하자.
-```
+워커 3개는 이미 떠있음. 재시작 불필요 (설정 변경 없으면).
 
-### 4. 워커에게 WO-001 전송
-```bash
-! cd ~/Develop/aidy-architect && ./architect-cli.sh send server "~/Develop/aidy-server/CLAUDE.md 읽고, ~/Develop/aidy-architect/specs/api-contract.md 읽고, ~/Develop/aidy-architect/work-orders/backlog/WO-001-server-chat-api.md 읽고 작업 시작해"
-```
+## 다음 할 일 (우선순위)
 
-### 5. 서버 완료 후 iOS/Android 병렬 전송
-```bash
-! ./architect-cli.sh send ios "~/Develop/aidy-ios/CLAUDE.md 읽고, ~/Develop/aidy-architect/specs/api-contract.md 읽고, ~/Develop/aidy-architect/work-orders/backlog/WO-002-ios-chat-screen.md 읽고 작업 시작해"
+1. **iOS/Android 동기화** (ADR-003): iOS에 Memory 리스트+삭제+검색 완성, Settings 화면 추가
+2. **WO-002/003 done 처리** → Gate 2 통과 후
+3. **WO-004 발행**: iOS Settings 화면 (Android와 동일하게)
+4. **서버 실제 기동 테스트**: Docker + bootRun + curl (/browse 활용)
+5. **Decision Backlog**: P-001 JWT 인증 (v0.2), P-003 메모리 추출 최적화
 
-! ./architect-cli.sh send android "~/Develop/aidy-android/CLAUDE.md 읽고, ~/Develop/aidy-architect/specs/api-contract.md 읽고, ~/Develop/aidy-architect/work-orders/backlog/WO-003-android-chat-screen.md 읽고 작업 시작해"
-```
+## 구축된 인프라 요약
 
-## 환경 설정 (필요한 것들)
-- JDK 21: `export JAVA_HOME=/opt/homebrew/opt/openjdk@21` (~/.zshrc에 추가 권장)
-- Docker: PostgreSQL용 (`docker compose up -d`)
-- Xcode: iOS 빌드용 (`sudo xcode-select -s /Applications/Xcode.app`)
-- Android Studio: Android 빌드용
+### Slash Commands
+`/gate-1`, `/gate-2`, `/monitor`, `/dispatch`, `/compound`, `/cross-session-review`, `/autoceo`, `/ingest`
+
+### 안전장치
+- 워커 pre-commit hook (빌드 게이트)
+- 금지 액션 hook (reset --hard, rm -rf, push --force 차단)
+- ai-review.yml CI (3개 프로젝트)
+- Gate 1/2 검증 프로토콜
+- inbox 메시징 (워커 → Architect)
+- worker-monitor.sh (상태 감시)
+- autoceo 체크포인트 + 롤백
+
+### 토크노믹스
+- .claudeignore (빌드 산출물 제외)
+- 세션 유지 정책 (매번 재시작 X)
+- RTK 활성화
+
+### 문서
+- SYSTEM-GUIDE.md (12 섹션 운영 매뉴얼)
+- CHANGELOG.md
+- ADR 3건 + BACKLOG
+- 세션 회고 + autoceo 라운드 회고 2건

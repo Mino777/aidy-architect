@@ -140,7 +140,75 @@
 
 ---
 
-## 4. Health
+## 4. People (관계 메모리)
+
+### GET /api/memories/people
+인물별 기억 조회 (normalizedName 기준 exact match)
+
+```json
+// Query: ?person=김팀장
+// Auth: Authorization: Bearer {JWT} (v0.2+) 또는 X-User-Id (v0.1)
+// Response 200
+{
+  "person": "김팀장",
+  "aliases": ["김 팀장", "팀장님", "팀장"],
+  "relationship": "직장 상사",
+  "memories": [
+    {
+      "id": 101,
+      "trait": "스타벅스 선호",
+      "context": "점심 식사 후 대화에서 언급",
+      "date": "2026-04-16",
+      "sentiment": "neutral"
+    }
+  ],
+  "totalCount": 1
+}
+
+// Error 400
+{ "error": "인물 이름을 입력해주세요.", "code": "EMPTY_PERSON" }
+// Error 401
+{ "error": "인증이 필요합니다.", "code": "UNAUTHORIZED" }
+// Error 404
+{ "error": "해당 인물의 기억을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+### POST /api/memories/{id}/feedback
+기억 정확도 피드백
+
+```json
+// Request
+{ "isCorrect": false }
+// Response 200 (isCorrect=true)
+{ "status": "ok" }
+// Response 200 (isCorrect=false — 기억 삭제됨)
+{ "status": "deleted" }
+```
+
+### POST /chat 응답 확장 (people 카테고리)
+
+`memoriesExtracted` 항목이 `category: "people"`일 때 `personDetail` 추가:
+
+```json
+{
+  "id": 42,
+  "category": "people",
+  "title": "김 팀장 — 스타벅스 선호",
+  "content": "스타벅스 좋아한다고 함",
+  "createdAt": "2026-04-16T12:00:00Z",
+  "personDetail": {
+    "normalizedName": "김팀장",
+    "relationship": "직장 상사",
+    "trait": "스타벅스 선호",
+    "context": "점심 식사 후 대화에서 언급",
+    "sentiment": "neutral"
+  }
+}
+```
+
+---
+
+## 5. Health
 
 ### GET /api/health
 ```json
@@ -173,6 +241,8 @@
 | UNAUTHORIZED | 401 | 인증 필요 |
 | FORBIDDEN | 403 | 권한 없음 |
 | MEMORY_NOT_FOUND | 404 | 메모리 없음 |
+| PERSON_NOT_FOUND | 404 | 인물 없음 |
+| EMPTY_PERSON | 400 | 인물 이름 누락 |
 | DUPLICATE_EMAIL | 409 | 이메일 중복 |
 | RATE_LIMITED | 429 | 요청 초과 |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 |
@@ -186,3 +256,4 @@
 |------|------|------|
 | v0.1 | 2026-04-15 | 초기 스펙 (Chat + Memory + Health) |
 | v0.1.1 | 2026-04-16 | AI_TIMEOUT 에러 코드 추가 (WO-004) |
+| v0.2.0 | 2026-04-16 | People 엔드포인트 + 피드백 API + personDetail 확장 (ADR-005) |

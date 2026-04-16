@@ -1,5 +1,61 @@
 # Changelog
 
+## [0.6.0] — 2026-04-16
+
+### 플랫폼 성숙 (autoceo 5차 스프린트, 10라운드)
+
+**Gate 1 강화 + WO 템플릿 (R1)**
+- Gate 1 체크리스트에 "테스트 실행 숫자 증거" 필수 항목 추가
+- `architect-cli.sh build_prompt` 에 테스트 통계 요구 고정 문구
+- /api/health 응답 확장 (BuildProperties 기반 version/buildTime)
+- iOS/Android Settings 에 앱 정보 섹션
+
+**CI/CD (R2)**
+- GitHub Actions `test.yml` 3-way 추가 (server ubuntu / iOS macos-14 / android ubuntu)
+- 기존 `ai-review.yml` (auto-merge) 공존
+
+**오프라인 드래프트 큐 + AI 통계 (R3)**
+- iOS/Android DraftQueue (50건 rolling, Android는 EncryptedSharedPreferences)
+- 전송 실패 시 로컬 큐 → 재시도 UI
+- 서버 GET /api/internal/ai-stats + V9 (ai_call_logs.user_id)
+
+**메모리 페이지네이션 v0.2.2 (R4)**
+- GET /api/memories offset/limit + HTTP 헤더 (X-Total-Count/X-Offset/X-Limit/X-Has-More)
+- **body는 bare array 유지** — backward compat
+- 클라 무한 스크롤
+
+**Biometric 앱 잠금 + 토큰 refresh (R5)**
+- POST /api/auth/refresh (v0.2.3) — 단순 re-sign
+- iOS LocalAuthentication Face ID/Touch ID
+- Android androidx.biometric:1.2.0 (AndroidX 확장으로 예외 허용)
+- Settings 잠금 토글
+
+**관측성 — 에러 로그 집계 (R6)**
+- 서버 V10 error_logs 테이블 + GET /api/internal/error-logs
+- iOS 파일 기반 ErrorLogClient (100건 rolling)
+- Android EncryptedSharedPreferences + CoroutineExceptionHandler 전역
+
+**SSE 채팅 스트리밍 — ADR-008 (R7)**
+- POST /api/chat/stream (SseEmitter, Phase 1 fake-stream)
+- 클라 검색 debounce 300→200ms + 요청 통계 UI
+
+**E2E + 경계 테스트 (R8)**
+- SecurityRegressionTest + MemoryPaginationE2ETest (서버)
+- 클라 DraftQueue/Biometric/ErrorLog 경계 테스트
+
+**성능 + 폴리시 (R9)**
+- ThroughputBenchmarkTest (MockMvc 100회 반복, p95 assumeTrue)
+- 햅틱 피드백 (UIImpactFeedbackGenerator / LocalHapticFeedback)
+- Skeleton shimmer 애니메이션 (외부 lib 0)
+
+**신규 ADR**
+- ADR-008: SSE 스트리밍 채팅 (P-002 결론)
+
+**테스트 메트릭**
+- **340 tests · 0 failures** (server 170 / iOS 87 / android 83)
+- 세션 4 대비 +142 tests
+- 테스트 실행 증거 워커 자체 보고 100% 정착
+
 ## [0.5.0] — 2026-04-16
 
 ### 안정성 + 관측성 + UX 폴리시 (autoceo 4차 스프린트, 10라운드)

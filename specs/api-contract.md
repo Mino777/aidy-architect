@@ -35,6 +35,18 @@
 { "error": "이메일 또는 비밀번호가 올바르지 않습니다.", "code": "INVALID_CREDENTIALS" }
 ```
 
+### POST /api/auth/refresh (v0.2.3)
+현재 유효한 JWT를 새 expiration으로 재발급. Refresh-token rotation은 미적용 (단순 re-sign).
+
+```
+Headers: Authorization: Bearer {현재유효한JWT}
+Body: 없음
+// Response 200 (login 응답과 동일 스키마)
+{ "userId": 1, "token": "eyJ...신규토큰", "nickname": "홍길동" }
+// Error 401 — 토큰 만료/무효/사용자 삭제 → UNAUTHORIZED
+// Error 429 — auth bucket rpm=10 초과
+```
+
 ---
 
 ## 2. Chat
@@ -88,11 +100,24 @@
 ## 3. Memory
 
 ### GET /api/memories
-전체 메모리 조회 (카테고리 필터 가능)
+전체 메모리 조회 (카테고리 필터 + 페이지네이션 v0.2.2)
 
-```json
-// Query: ?category=finance (optional)
+**응답 바디 형식은 바뀌지 않음** — 여전히 bare JSON array. 페이지네이션 정보는 HTTP response headers로 전달.
+
+```
+// Query:
+//   ?category=finance (optional)
+//   ?offset=0 (optional, default 0, >= 0)
+//   ?limit=20 (optional, default 없음 — offset/limit 둘 다 없으면 전체 반환 — 기존 클라 호환)
+//                          limit 지정 시 1~100 범위
+//
 // Response 200
+// Headers:
+//   X-Total-Count: 137       // 필터 조건 적용 후 전체 개수
+//   X-Offset: 0              // 적용된 offset (페이지네이션 적용 시에만)
+//   X-Limit: 20              // 적용된 limit (페이지네이션 적용 시에만)
+//   X-Has-More: true         // offset+limit < total 이면 true
+// Body: (기존 그대로)
 [
   {
     "id": 42,
@@ -103,6 +128,12 @@
   }
 ]
 ```
+
+**호환성 규칙**:
+- offset/limit 쿼리 둘 다 없음 → 전체 반환 (기존 클라 무영향), X-Total-Count만 포함 가능
+- offset 또는 limit 중 하나라도 있음 → 페이지네이션 활성화, 4개 헤더 전부 포함
+- limit > 100 → 400 VALIDATION_ERROR
+- offset < 0 → 400 VALIDATION_ERROR
 
 ### GET /api/memories/search
 키워드 검색
@@ -268,3 +299,5 @@
 | v0.1.1 | 2026-04-16 | AI_TIMEOUT 에러 코드 추가 (WO-004) |
 | v0.2.0 | 2026-04-16 | People 엔드포인트 + 피드백 API + personDetail 확장 (ADR-005) |
 | v0.2.1 | 2026-04-16 | AI_UNAVAILABLE + VALIDATION_ERROR 추가, retryable 플래그 문서화 (autoceo-s4-R2/R3) |
+| v0.2.2 | 2026-04-16 | GET /api/memories 페이지네이션 (offset/limit) (autoceo-s5-R4) |
+| v0.2.3 | 2026-04-16 | POST /api/auth/refresh — JWT 토큰 재발급 (autoceo-s5-R5) |

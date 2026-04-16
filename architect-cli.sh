@@ -121,9 +121,19 @@ build_prompt() {
 1. ~/Develop/aidy-${target}/CLAUDE.md
 2. ~/Develop/aidy-architect/specs/api-contract.md
 3. ~/Develop/aidy-architect/specs/conventions.md
-4. ~/Develop/aidy-architect/work-orders/in-progress/${wo_filename}
+4. ~/Develop/aidy-architect/gates/test-policy.md + gates/test-policy-${target}.md
+5. ~/Develop/aidy-architect/work-orders/in-progress/${wo_filename}
 
 work-order의 '구현 요구사항'을 하나씩 구현하고, 완료되면 git commit해줘. 커밋 메시지는 한글로.
+
+⚠️ 테스트 실행 증거 필수 (autoceo-s4 교훈):
+- 커밋 전 반드시 실제 테스트 실행하고 숫자 보고:
+  - server: \`./gradlew test\` → "NN tests · 0 failures"
+  - ios: \`xcodebuild test -workspace Aidy.xcworkspace -scheme Aidy -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest'\` → "Test run with NN tests passed"
+  - android: \`./gradlew testDebugUnitTest\` → "NN tests · 0 failures"
+- "빌드 통과" 만으로 "테스트 통과" 주장 금지
+- "no tests to run" 나오면 즉시 인프라 이슈 → architect에 보고
+- 커밋 메시지 또는 inbox 파일에 숫자 포함
 EOF
 }
 

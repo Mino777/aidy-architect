@@ -10,6 +10,20 @@ CI에 위임하지 않는다. 로컬에서 직접 확인.
 
 ---
 
+## Phase 0 — CI 상태 자동 수집 (P3-9)
+
+머지 직전, 3개 워커 repo의 GitHub Actions 결과부터 본다. 빨간불이면 그 자리에서 FAIL.
+
+```bash
+cd ~/Develop/aidy-architect
+./ci-status.sh --watch --limit 5      # 실패 워크플로 한 줄 보고
+./ci-status.sh --since 24h --limit 10 # 최근 24h 컨텍스트
+```
+
+`--watch` 가 비어 있어야 Phase 1로 진행. 빨간불이 있으면 워커에게 재작업 지시.
+
+---
+
 ## Phase 1 — 빌드 검증
 
 ### 서버

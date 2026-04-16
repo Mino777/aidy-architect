@@ -74,6 +74,21 @@ ls ~/Develop/aidy-architect/gates/reviews/ 2>/dev/null || echo "(아직 없음)"
 
 ---
 
+## Phase 6 — CI 상태 (P3-9)
+
+3개 워커 repo의 GitHub Actions 결과를 자동 수집한다.
+
+```bash
+cd ~/Develop/aidy-architect
+./ci-status.sh --limit 3              # 워커별 최신 3건
+./ci-status.sh --watch --limit 5      # 실패 워크플로만 한 줄 보고
+./ci-status.sh --since 24h --limit 10 # 24시간 이내 결과만
+```
+
+빨간불 워커가 있으면 즉시 보고하고, 통합 검증(Gate 2)에서 머지 차단 사유로 사용한다.
+
+---
+
 ## 출력 형식
 
 ```markdown

@@ -76,15 +76,19 @@ tmux attach -t aidy
 
 ## 다음 할 일
 
-### P1 — s6 후속
+### P1 — s6 후속 (다음 작업)
 1. **Password reset SMTP 통합** — 현재 로그 출력만 → 실제 이메일
 2. **SSE Phase 3** — Anthropic 공식 event_type 전수 (error, ping, usage)
 3. **P-004 Phase 2** — Multi-Provider Fallback (OpenAI)
 
-### P3 — 인프라 개선 (토큰 경제성)
-6. **architect-cli.sh `send --sequential` 모드** — 3-way 직렬 옵션
-7. **429 감지 + backoff** — dispatch 후 pane 에러 자동 감지 + 백오프 재시도
-8. **CI 상태 자동 수집** — GitHub Actions 결과 gh CLI로 풀링
+### P3 — 인프라 개선 (토큰 경제성) — ✅ 완료 (0.7.1)
+6. ~~architect-cli.sh `send-seq` 모드~~ — ✅ `send-seq` + `wait-idle` + idle 감지
+7. ~~429 감지 + backoff~~ — ✅ tmux_send 내장, 환경변수 제어
+8. ~~CI 상태 자동 수집~~ — ✅ `ci-status.sh` (watch/json/since/branch/workflow) + /monitor, /gate-2 통합
+
+### 긴급 — iOS CI 빨간불
+- 최근 iOS Test 워크플로 2건 연속 실패 (s6-R9 커밋)
+- `./ci-status.sh --watch --limit 5` 로 재확인 후 조사 필요
 
 ## 이번 세션 수치
 

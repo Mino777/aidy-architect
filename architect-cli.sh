@@ -115,7 +115,121 @@ tmux_send() {
         break
     done
 
+    # 429 / rate-limit 감지 + backoff (P3-8)
+    # 환경변수로 제어:
+    #   AIDY_SEND_429_DETECT=0   : 비활성 (기본 1)
+    #   AIDY_SEND_429_WATCH=30   : 감지 윈도우 초 (기본 30)
+    #   AIDY_SEND_429_BACKOFF=300: 백오프 초 (기본 5분)
+    #   AIDY_SEND_429_RETRY=1    : 재시도 횟수 (기본 1)
+    if [[ "${AIDY_SEND_429_DETECT:-1}" == "1" && "${AIDY_SEND_NO_429:-0}" != "1" ]]; then
+        local watch_sec="${AIDY_SEND_429_WATCH:-30}"
+        local backoff_sec="${AIDY_SEND_429_BACKOFF:-300}"
+        local max_retry="${AIDY_SEND_429_RETRY:-1}"
+        local retry_count="${AIDY_SEND_429_TRY_NUM:-0}"
+
+        local elapsed=0
+        local hit_429=0
+        local hit_pattern=""
+        while [ "$elapsed" -lt "$watch_sec" ]; do
+            local capture
+            capture=$(tmux capture-pane -t "$tmux_target" -p | tail -20)
+            # Claude Code의 rate-limit 메시지 패턴 (대소문자 무시)
+            if echo "$capture" | grep -iqE '(rate limit|429|too many requests|usage limit reached|retry[- ]after|claude usage limit|api error 529)'; then
+                hit_429=1
+                hit_pattern=$(echo "$capture" | grep -iE '(rate limit|429|too many requests|usage limit reached|retry[- ]after|claude usage limit|api error 529)' | head -1 | tr -s ' ' | cut -c1-80)
+                break
+            fi
+            sleep 2
+            elapsed=$((elapsed + 2))
+        done
+
+        if [ "$hit_429" = "1" ]; then
+            echo -e "${RED}[429 감지] $target — \"$hit_pattern\"${NC}"
+            if [ "$retry_count" -lt "$max_retry" ]; then
+                echo -e "${YELLOW}[backoff] ${backoff_sec}s 대기 후 재시도 ($((retry_count+1))/$max_retry)...${NC}"
+                sleep "$backoff_sec"
+                AIDY_SEND_429_TRY_NUM=$((retry_count + 1)) tmux_send "$target" "$prompt"
+                return $?
+            else
+                echo -e "${RED}[중단] $target 재시도 한도 초과. 수동 개입 필요.${NC}"
+                return 2
+            fi
+        fi
+    fi
+
     echo -e "${GREEN}[완료]${NC}"
+}
+
+# ─── Idle 감지 + Sequential dispatch (P3-7) ───
+
+# pane이 idle 상태인지 판정 — worker-monitor.sh와 동일 로직
+is_pane_idle() {
+    local target=$1
+    local pane_idx
+    pane_idx=$(get_pane_index "$target")
+    local tmux_target
+    if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${target}$"; then
+        tmux_target="$TMUX_SESSION:$target"
+    elif [[ -n "$pane_idx" ]]; then
+        tmux_target="$TMUX_SESSION:architect.${pane_idx}"
+    else
+        return 2
+    fi
+    local last_lines
+    last_lines=$(tmux capture-pane -t "$tmux_target" -p 2>/dev/null | grep -v "^$" | tail -5)
+    # "esc to interrupt" / "ctrl+t" → 작업 중. 그 외 프롬프트 시그니처는 idle.
+    if echo "$last_lines" | grep -q "esc to interrupt\|ctrl+t"; then
+        return 1  # working
+    fi
+    if echo "$last_lines" | grep -q "bypass permissions on\|accept edits on\|? for shortcuts"; then
+        return 0  # idle
+    fi
+    return 1  # 알 수 없음 → working으로 취급 (안전)
+}
+
+# 워커가 idle 될 때까지 대기 (timeout 초 default 1800)
+wait_for_idle() {
+    local target=$1
+    local timeout="${2:-1800}"
+    local poll="${AIDY_IDLE_POLL_SEC:-15}"
+    local elapsed=0
+    echo -e "${CYAN}[wait] $target idle 대기 (timeout=${timeout}s, poll=${poll}s)${NC}"
+    # 첫 dispatch 직후엔 working 상태 진입까지 살짝 여유
+    sleep 5
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if is_pane_idle "$target"; then
+            echo -e "${GREEN}[idle] $target 작업 종료 감지 (${elapsed}s)${NC}"
+            return 0
+        fi
+        sleep "$poll"
+        elapsed=$((elapsed + poll))
+    done
+    echo -e "${YELLOW}[timeout] $target ${timeout}s 내 idle 미감지 — 다음 단계 진행${NC}"
+    return 1
+}
+
+# 직렬 dispatch — 가변 인자: target1 "prompt1" target2 "prompt2" ...
+# 각 워커 dispatch 후 idle 될 때까지 대기. AIDY_SEQ_TIMEOUT (default 1800s) 로 워커당 timeout 제어.
+tmux_send_sequential() {
+    if [ "$#" -lt 2 ] || [ $(($# % 2)) -ne 0 ]; then
+        echo -e "${RED}[오류] send-seq 사용법: send-seq <target1> \"<prompt1>\" [<target2> \"<prompt2>\" ...]${NC}"
+        exit 1
+    fi
+    local seq_timeout="${AIDY_SEQ_TIMEOUT:-1800}"
+    local total=$(( $# / 2 ))
+    local idx=1
+    while [ "$#" -gt 0 ]; do
+        local target=$1
+        local prompt=$2
+        shift 2
+        echo -e "${GREEN}[seq ${idx}/${total}] → $target${NC}"
+        tmux_send "$target" "$prompt"
+        if [ "$#" -gt 0 ]; then
+            wait_for_idle "$target" "$seq_timeout" || true
+        fi
+        idx=$((idx + 1))
+    done
+    echo -e "${GREEN}[seq 완료]${NC} 마지막 워커 idle 대기는 생략 (수동 확인)."
 }
 
 # ─── Claude CLI 모드 (VS Code 호환) ───
@@ -221,6 +335,8 @@ wo_complete() {
 case "${1:-help}" in
     tmux-setup)  tmux_setup ;;
     send)        tmux_send "$2" "$3" ;;
+    send-seq)    shift; tmux_send_sequential "$@" ;;
+    wait-idle)   wait_for_idle "$2" "${3:-1800}" ;;
     run)         cli_run "$2" "$3" ;;
     run-all)     cli_run_all ;;
     wo)          wo_activate "$2" ;;
@@ -238,16 +354,27 @@ case "${1:-help}" in
         echo "Aidy Architect CLI — 멀티 에이전트 오케스트레이션"
         echo ""
         echo "tmux 모드 (시각적 관제):"
-        echo "  ./architect-cli.sh tmux-setup           — 4 세션 생성"
-        echo "  ./architect-cli.sh send <target> \"msg\"   — 워커에게 명령"
+        echo "  ./architect-cli.sh tmux-setup                                      — 4 세션 생성"
+        echo "  ./architect-cli.sh send <target> \"msg\"                              — 워커에게 명령 (429 자동 backoff)"
+        echo "  ./architect-cli.sh send-seq <t1> \"m1\" <t2> \"m2\" [...]               — 직렬 dispatch (idle 대기)"
+        echo "  ./architect-cli.sh wait-idle <target> [timeout=1800]                — 워커 idle까지 대기"
         echo ""
         echo "CLI 모드 (VS Code 호환):"
-        echo "  ./architect-cli.sh run <target> \"msg\"    — claude -p 원샷"
-        echo "  ./architect-cli.sh run-all               — 전체 병렬 실행"
+        echo "  ./architect-cli.sh run <target> \"msg\"                               — claude -p 원샷"
+        echo "  ./architect-cli.sh run-all                                          — 전체 병렬 실행"
         echo ""
         echo "Work Order:"
-        echo "  ./architect-cli.sh wo <number>           — WO 활성화"
-        echo "  ./architect-cli.sh wo-done <number>      — WO 완료"
-        echo "  ./architect-cli.sh status                — 현황"
+        echo "  ./architect-cli.sh wo <number>                                      — WO 활성화"
+        echo "  ./architect-cli.sh wo-done <number>                                 — WO 완료"
+        echo "  ./architect-cli.sh status                                           — 현황"
+        echo ""
+        echo "환경 변수:"
+        echo "  AIDY_SEND_429_DETECT  (default 1)   — 429 감지 활성/비활성"
+        echo "  AIDY_SEND_429_WATCH   (default 30)  — 감지 윈도우 초"
+        echo "  AIDY_SEND_429_BACKOFF (default 300) — 백오프 초"
+        echo "  AIDY_SEND_429_RETRY   (default 1)   — 재시도 횟수"
+        echo "  AIDY_SEND_NO_429      (default 0)   — 단일 호출에서 감지 비활성"
+        echo "  AIDY_SEQ_TIMEOUT      (default 1800)— send-seq 워커당 idle 대기 timeout 초"
+        echo "  AIDY_IDLE_POLL_SEC    (default 15)  — idle 폴링 주기 초"
         ;;
 esac

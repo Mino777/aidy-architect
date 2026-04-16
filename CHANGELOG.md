@@ -1,6 +1,34 @@
 # Changelog
 
-## [0.7.0] — 2026-04-16
+## [0.7.1] — 2026-04-16
+
+### 토큰 경제성 인프라 (P3 — s6 후속)
+
+s6 종료 시 박제된 "토큰 리밋 리셋 직후 17% + 429 rejection" 교훈을 도구로 박제. 다음 autoceo 안전벨트.
+
+**P3-7 — 직렬 dispatch (architect-cli.sh send-seq)**
+- `send-seq <t1> "m1" <t2> "m2" [...]` — 가변 인자 (target, prompt) 페어
+- 워커별 `wait_for_idle` 후 다음 워커로 진행 (idle = "esc to interrupt" 미감지 + 프롬프트 시그니처)
+- 환경변수: `AIDY_SEQ_TIMEOUT` (기본 1800s), `AIDY_IDLE_POLL_SEC` (기본 15s)
+- 추가 명령: `wait-idle <target> [timeout]` — 단독 idle 대기
+
+**P3-8 — 429 자동 backoff (tmux_send 내장)**
+- dispatch 후 `AIDY_SEND_429_WATCH`초 (기본 30s) 동안 pane 폴링
+- 패턴: rate limit, 429, too many requests, usage limit reached, retry-after, claude usage limit, api error 529
+- 감지 시 `AIDY_SEND_429_BACKOFF`초 (기본 300s) 백오프 후 1회 재시도
+- 환경변수: `AIDY_SEND_429_DETECT=0` 비활성, `AIDY_SEND_NO_429=1` 단일 호출 비활성, `AIDY_SEND_429_RETRY` 재시도 횟수
+- 재시도 시 무한루프 방지 위해 내부 카운터 (`AIDY_SEND_429_TRY_NUM`) 전달
+
+**P3-9 — CI 상태 자동 수집 (ci-status.sh)**
+- 3개 워커 repo의 GitHub Actions 결과를 한 번에 (gh CLI + jq)
+- 옵션: `--limit N`, `--branch`, `--workflow`, `--since 24h|7d`, `--json`, `--watch`
+- 색상 출력: success(녹), failure(적), in_progress(황)
+- `--watch` 모드: 실패 워크플로만 한 줄 보고 — exit 1 (모니터링 통합용)
+- `--json` 모드: jq 파이프 가능 (다른 스크립트 통합용)
+- `/monitor` Phase 6 추가 + `/gate-2` Phase 0 (머지 전 빨간불 차단) 통합
+- 첫 실행 결과: iOS Test 워크플로 2건 연속 실패 — 후속 조사 필요
+
+
 
 ### 스트리밍 + 계정 복구 + 검색 최적화 (autoceo 6차 스프린트, 8라운드 완주 — R9 org rate limit로 deferred)
 

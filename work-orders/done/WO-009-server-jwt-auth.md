@@ -2,7 +2,7 @@
 
 **담당**: server
 **우선순위**: P1
-**상태**: in-progress
+**상태**: done
 **참조**: API Contract § 1. Auth, P-001
 
 ## 목표

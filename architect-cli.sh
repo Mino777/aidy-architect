@@ -69,15 +69,52 @@ tmux_send() {
     local pane_idx
     pane_idx=$(get_pane_index "$target")
 
-    # 먼저 윈도우로 시도, 없으면 pane으로 fallback
+    # 대상 tmux target 결정 — 윈도우 우선, pane 폴백
+    local tmux_target
     if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${target}$"; then
-        tmux send-keys -t "$TMUX_SESSION:$target" "$prompt" C-m
+        tmux_target="$TMUX_SESSION:$target"
     elif [[ -n "$pane_idx" ]]; then
-        tmux send-keys -t "$TMUX_SESSION:architect.${pane_idx}" "$prompt" C-m
+        tmux_target="$TMUX_SESSION:architect.${pane_idx}"
     else
         echo -e "${RED}[오류] $target 윈도우/pane을 찾을 수 없습니다.${NC}"
         exit 1
     fi
+
+    # 프롬프트 히스토리 로깅 (프롬프트 엔지니어링 학습용)
+    # 파일명: docs/worker-prompts/YYYY-MM-DD.md (날짜별 append)
+    local log_dir="$ARCH_DIR/docs/worker-prompts"
+    mkdir -p "$log_dir"
+    local log_file="$log_dir/$(date '+%Y-%m-%d').md"
+    if [[ ! -f "$log_file" ]]; then
+        printf '# 워커 프롬프트 로그 — %s\n\n> architect-cli.sh `send` 로 워커에게 보낸 프롬프트 원문. 프롬프트 엔지니어링 학습/회고용.\n\n' "$(date '+%Y-%m-%d')" > "$log_file"
+    fi
+    {
+        printf '\n---\n\n## %s → %s\n\n' "$(date '+%H:%M:%S')" "$target"
+        printf '```\n%s\n```\n' "$prompt"
+    } >> "$log_file"
+
+    # Paste-buffer 경유로 긴 프롬프트도 안정적으로 전송
+    # (send-keys 직접 전달 시 긴 텍스트가 buffered paste 형태로 들어가서 Enter flush 실패하는 경우 회피)
+    local buf_name="aidy_send_$$_$RANDOM"
+    tmux set-buffer -b "$buf_name" "$prompt"
+    tmux paste-buffer -b "$buf_name" -t "$tmux_target"
+    tmux delete-buffer -b "$buf_name" 2>/dev/null
+
+    # Enter flush — 최대 3회 재시도
+    local attempt
+    for attempt in 1 2 3; do
+        tmux send-keys -t "$tmux_target" C-m
+        sleep 0.4
+        # pane 마지막 줄에 실행 마커 (스피너/결과)가 나타나면 OK
+        local tail
+        tail=$(tmux capture-pane -t "$tmux_target" -p | tail -3 | tr -d '\n')
+        if [[ "$tail" == *"Pasted text"* || "$tail" == *"[Pasted"* ]]; then
+            # 아직 paste 상태 — 재시도
+            continue
+        fi
+        break
+    done
+
     echo -e "${GREEN}[완료]${NC}"
 }
 

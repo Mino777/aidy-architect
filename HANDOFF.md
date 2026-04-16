@@ -1,39 +1,38 @@
-# Architect 핸드오프 — 2026-04-16 세션 5 종료
+# Architect 핸드오프 — 2026-04-16 세션 6 종료
 
 ## 이번 세션 요약
-**키워드**: 플랫폼 성숙 + 관측성 + 보안 + 테스트 규율 정착
+**키워드**: 실시간 스트리밍 + 계정 복구 + 검색 최적화 + **토큰 경제성 교훈**
 
 ```
-autoceo 5차 스프린트 (10라운드):
-  R1: Gate 1 강화 + WO 템플릿 + 앱 정보
-  R2: CI/CD GitHub Actions (3-way)
-  R3: 오프라인 드래프트 큐 + AI 통계 API
-  R4: 메모리 페이지네이션 v0.2.2 (헤더 기반)
-  R5: Biometric unlock + 토큰 재발급 v0.2.3
-  R6: 에러 로그 집계 (V10) + 클라 crash 캡처
-  R7: ADR-008 SSE 스트리밍 Phase 1
-  R8: E2E + 경계 테스트 확장
-  R9: 성능 벤치마크 + 햅틱/Skeleton
-  R10: CHANGELOG v0.6.0 + HANDOFF + Compound
+autoceo 6차 스프린트 (R1~R8 완주, R9 org rate limit로 deferred, R10 compound):
+  R1: tmux flush 자동화 + 프롬프트 로깅 + 채팅 복사
+  R2: SSE Phase 2 Anthropic streaming (서버)
+  R3: iOS SSE 구독 + 서버 SSE 테스트
+  R4: Android SSE 구독 + chat/history since v0.2.4
+  R5: Password reset 서버 + SSE 회복성
+  R6: Password reset UI (iOS/Android) + 서버 쿨다운
+  R7: pg_trgm GIN V12 + 검색 UX
+  R8: E2E 통합 테스트 확장
+  R9: [deferred] → 다음 세션 P1
+  R10: compound
 ```
 
 ## 현재 상태
 
 ### 프로젝트 진행도
 
-| 영역 | 상태 | 신규 (s5) |
+| 영역 | 상태 | 신규 (s6) |
 |------|------|----------|
-| Auth (JWT + Biometric) | ✅ 로그인/가입/refresh + 생체 잠금 | 5차 |
-| Chat | ✅ 기존 + SSE Phase 1 (fake-stream) | 5차 |
-| Memory | ✅ 페이지네이션 + 무한 스크롤 | 5차 |
+| Auth | ✅ JWT + Biometric + Password Reset | 6차 |
+| Chat | ✅ SSE Phase 2 실제 스트리밍 | 6차 |
+| Memory | ✅ 페이지네이션 + 검색 GIN | 6차 |
 | People | ✅ | — |
-| 오프라인 드래프트 | ✅ 클라 로컬 큐 | 5차 |
-| AI 안정성 | ✅ Circuit Breaker | — |
-| AI 출력 검증 | ✅ 5-Layer | — |
-| 보안 | ✅ JWT + RateLimit + Headers + Biometric | 5차 |
-| 관측성 | ✅ Request-Id + error_logs + 사용자 통계 API | 5차 |
-| DB 성능 | ✅ V8 인덱스 + V9 user_id + V10 error_logs | 5차 |
-| 테스트 인프라 | ✅ 340 tests 실측 + CI 자동화 | 5차 |
+| 드래프트 큐 | ✅ | — |
+| AI 안정성 | ✅ Circuit Breaker (stream에도 적용) | 6차 확장 |
+| 관측성 | ✅ Request-Id + error_logs + ai_stats + metrics | — |
+| DB 성능 | ✅ V8 인덱스 + V9 user_id + V10 error_logs + V11 password_reset + V12 pg_trgm | 6차 |
+| 테스트 | ✅ 456 tests 실측 + CI 자동화 | 6차 |
+| 도구 | ✅ tmux flush 안정화 + 프롬프트 로깅 | 6차 |
 
 ### WO 현황
 - WO-001~009: 전부 done
@@ -42,74 +41,84 @@ autoceo 5차 스프린트 (10라운드):
 ### BACKLOG 미결정 이슈
 | ID | 제목 | 긴급도 | 상태 |
 |----|------|--------|------|
-| ~~P-002~~ | ~~SSE vs WebSocket~~ | — | 완료 — ADR-008 |
+| ~~P-002~~ | ~~SSE vs WebSocket~~ | — | 완료 — ADR-008 Phase 1+2 |
 | ~~P-004 Phase 1~~ | ~~Circuit Breaker~~ | — | 완료 — ADR-007 |
-| P-004 Phase 2 | Multi-Provider Fallback | P3 | 대기 (2nd API key 필요) |
+| P-004 Phase 2 | Multi-Provider Fallback | P3 | 대기 (2nd API key) |
 | P-006 | Multi-Agent Pipeline | P3 | 결정됨 (ADR-004) |
 
 ### ADR 현황 (총 8건)
-- ADR-001 ~ 006: 기존
-- ADR-007: AI Circuit Breaker (s4)
-- **ADR-008: SSE 스트리밍 채팅 (NEW — s5)**
+- ADR-001 ~ 007: 기존
+- ADR-008: SSE 스트리밍 채팅 — **Phase 2 실연동 완료 (s6-R2)**
 
-### API Contract
-- v0.2.1 → v0.2.3
-- 주요 변경: 메모리 페이지네이션 헤더 + /api/auth/refresh
+### API Contract v0.2.5
+- v0.2.4: GET /api/chat/history `?since=ISO8601`
+- v0.2.5: POST /api/auth/password/reset/{request,confirm} + PASSWORD_RESET_TOKEN_INVALID
 
-### 정책 문서 (누적)
-- `gates/gate-checklist.md` — **테스트 실행 숫자 증거 항목 추가 (s5-R1)**
-- `gates/test-policy.md` + server/ios/android — 공통 + 영역별 테스트 정책
-- `gates/security-hardening-checklist.md`
-- `architect-cli.sh build_prompt` — 테스트 증거 요구 고정 (s5-R1)
+### Flyway 누적
+V1~V12 (s6에서 V11 password_reset_tokens + V12 pg_trgm 추가)
+
+## 정책 + 도구
+
+### 자동 로깅 인프라 (NEW, s6-R1)
+- `docs/worker-prompts/` — dispatch 프롬프트 자동 기록 (매 send 시 `YYYY-MM-DD.md` append)
+- `docs/worker-prompts/README.md` — 컨벤션 + 학습 포인트
+- `docs/worker-prompts/autoceo-s6-backfill.md` — s6 R1~R9 프롬프트 백필
+
+### tmux 안정화
+- `tmux_send` — paste-buffer + Enter flush 3회 재시도 (긴 프롬프트 유실 차단)
 
 ## 다음 세션 시작 방법
 
 ```bash
 tmux attach -t aidy
-# 4 panes에 Claude Code 구동 중이면 그대로
+# 4 panes에 Claude Code 구동 중
 ```
 
 ## 다음 할 일
 
-### P1 — 스트리밍 완성
-1. **SSE Phase 2** — Anthropic Messages API streaming 실연동 (server)
-2. **클라 SSE 구독** (iOS URLSession byteStream / Android OkHttp 수동 파싱)
-3. **tmux flush 자동화** — architect-cli.sh send 에 pane check + C-m 재전송 로직
+### P1 — R9 이월 (s7에서 즉시)
+1. **GET /api/internal/stats/summary** (서버) — 기존 Repository 재사용, 신규 엔드포인트만
+2. **iOS/Android 디버그 뷰** — Settings 화면 통계 정리 + 서버 stats/summary 호출
 
-### P2 — 보안/UX 완성
-4. **Password reset / email 인증** — 가입 시 이메일 확인, 비번 초기화
+### P2 — s6 후속
+3. **Password reset SMTP 통합** — 현재 로그 출력만 → 실제 이메일
+4. **SSE Phase 3** — Anthropic 공식 event_type 전수 (error, ping, usage)
 5. **P-004 Phase 2** — Multi-Provider Fallback (OpenAI)
-6. **pg_trgm GIN 인덱스** — 메모리 검색 % 쿼리 최적화
 
-### P3 — 프로덕션 준비
-7. **실제 배포** — Docker + VPS 또는 Fly.io
-8. **Observability 집계** — error_logs 기반 알림 (email/Slack)
-9. **Multi-user 부하 테스트** — JMeter/Gatling
+### P3 — 인프라 개선 (토큰 경제성)
+6. **architect-cli.sh `send --sequential` 모드** — 3-way 직렬 옵션
+7. **429 감지 + backoff** — dispatch 후 pane 에러 자동 감지 + 백오프 재시도
+8. **CI 상태 자동 수집** — GitHub Actions 결과 gh CLI로 풀링
 
 ## 이번 세션 수치
 
 | 항목 | 수치 |
 |------|------|
-| autoceo 라운드 | 10 (QA 라운드 불필요 — 정책 효과) |
-| 워커 커밋 | 27건 (server 9 / ios 9 / android 9) |
+| autoceo 라운드 | R1~R8 완주 / R9 deferred / R10 compound |
+| 워커 커밋 | 24건 (server 8 / ios 8 / android 8) |
 | Architect 커밋 | 예정 (compound 최종 1건) |
-| 신규 ADR | 1건 (ADR-008) |
-| Flyway | V9 + V10 |
-| API 버전 | v0.2.1 → v0.2.3 |
-| **테스트 실측** | **340 · 0 failures** |
-| 세션 4 대비 증분 | +142 tests |
+| Flyway | V11 + V12 |
+| API 버전 | v0.2.3 → v0.2.5 |
+| **테스트 실측** | **456 · 0 failures** |
+| 세션 5 대비 증분 | +116 tests |
 | 롤백 | 0 · 보호파일 위반 | 0 |
 
-## 세션 5 vs 세션 4 정책 효과
+## 결정적 발견 — 토큰 경제성
 
-| 지표 | s4 | s5 |
-|------|----|----|
-| iOS 테스트 실제 실행 | ❌ 마지막에 QA 발견 | ✅ 매 라운드 숫자 보고 |
-| Gate 1 테스트 증거 | 없음 | 필수 항목 |
-| QA 정비 라운드 필요 | 있었음 (s4 QA) | 불필요 |
-| 워커 자발 증거 제출률 | 0% | 100% |
+**문제**: 토큰 리밋 리셋 직후 17% 소비 + 429 rejection 발생.
 
-**결론**: Gate 1 강화 + WO 템플릿 + test-policy 박제 = 테스트 규율 자동 정착.
+**원인**: autoceo 10라운드 × 3 워커 병렬 = 라운드당 4 Claude 인스턴스 동시 활동. architect 1 : worker 3 소비 비율.
+
+**박제된 교훈**:
+- 3-way 병렬 dispatch는 리밋 여유 있을 때만 안전
+- 리셋 직후엔 순차 또는 부분 병렬
+- dispatch 후 5분 간격 폴링 (2분 너무 공격적)
+- 큰 작업은 2 라운드로 쪼개기
+
+**다음 세션 개선 후보**:
+- `architect-cli.sh send --sequential` 모드
+- `tmux_send` 에 429 감지 + 백오프
+- 워커 소모 모니터링 (상태 파일에 cumulative 토큰 추정치)
 
 ## 구축된 인프라 (누적)
 
@@ -117,13 +126,13 @@ tmux attach -t aidy
 `/gate-1`, `/gate-2`, `/monitor`, `/dispatch`, `/compound`, `/cross-session-review`, `/autoceo`, `/ingest`, `/ship`
 
 ### CI/CD
-- `.github/workflows/test.yml` × 3 (s5-R2) — 자동 test 실행
-- `.github/workflows/ai-review.yml` × 3 (기존) — squash auto-merge
+- `.github/workflows/test.yml` × 3 (s5) + `ai-review.yml` × 3 (기존)
 
 ### 문서 누적
-- DESIGN.md / CHANGELOG v0.6.0 / HANDOFF (이 파일)
+- DESIGN.md / CHANGELOG v0.7.0 / HANDOFF (이 파일)
 - ADR 8건 + BACKLOG
-- 회고 약 25건 (autoceo s1~s5 각 10건 + 세션 회고 5건)
+- 회고: autoceo s1~s6 라운드별 + 세션 6건
 - 솔루션 3건
-- API Contract v0.2.3
+- API Contract v0.2.5
 - gates 정책 (test-policy × 4 + gate-checklist + security)
+- **worker-prompts 로그 (신규 s6)**

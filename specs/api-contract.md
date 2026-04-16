@@ -35,6 +35,33 @@
 { "error": "이메일 또는 비밀번호가 올바르지 않습니다.", "code": "INVALID_CREDENTIALS" }
 ```
 
+### POST /api/auth/password/reset/request (v0.2.5)
+비밀번호 재설정 토큰 발급. 이메일에 해당 사용자 존재 시 1회용 토큰을 DB에 저장. 이번 Phase 1 에서는 이메일 발송은 없고 서버 로그에 토큰 출력 (개발/테스트용).
+
+```json
+// Request
+{ "email": "string" }
+// Response 200 — 항상 200 (사용자 존재 여부 유출 방지)
+{ "message": "이메일이 발송되었습니다." }
+```
+- 토큰: 32자 랜덤 URL-safe, expires in 30분
+- 실제 존재하는 이메일만 DB에 기록, 무관 이메일은 no-op (응답은 동일)
+
+### POST /api/auth/password/reset/confirm (v0.2.5)
+토큰 + 새 비밀번호로 실제 변경.
+
+```json
+// Request
+{ "token": "string", "newPassword": "string" }
+// Response 200
+{ "message": "비밀번호가 변경되었습니다." }
+// Error 400 VALIDATION_ERROR — 비밀번호 길이/형식
+// Error 400 PASSWORD_RESET_TOKEN_INVALID — 토큰 없음/만료/이미 사용됨
+```
+- newPassword bcrypt 해싱 + User.passwordHash 업데이트
+- 토큰은 usedAt 설정해 재사용 방지
+- 성공 시 기존 JWT 토큰은 여전히 유효 (rotation은 다음 iteration)
+
 ### POST /api/auth/refresh (v0.2.3)
 현재 유효한 JWT를 새 expiration으로 재발급. Refresh-token rotation은 미적용 (단순 re-sign).
 
@@ -77,7 +104,10 @@ Body: 없음
 ```
 
 ### GET /api/chat/history
-최근 대화 히스토리 (최신 20건)
+최근 대화 히스토리.
+- `since` 쿼리 없음 → 최근 20건 (오래된 순 반환)
+- `?since=2026-04-16T10:00:00Z` (ISO 8601 Instant) → 해당 시각 이후 메시지 오름차순 반환 (증분 동기화용)
+- `since` 파싱 실패 → 400 VALIDATION_ERROR
 
 ```json
 // Response 200
@@ -280,6 +310,7 @@ Body: 없음
 | DUPLICATE_EMAIL | 409 | 이메일 중복 | — |
 | RATE_LIMITED | 429 | 요청 초과 | ✅ |
 | INTERNAL_ERROR | 500 | 서버 오류 | — |
+| PASSWORD_RESET_TOKEN_INVALID | 400 | 비밀번호 재설정 토큰 무효/만료/사용됨 | — |
 | AI_UNAVAILABLE | 503 | AI 서비스 일시 중단 (Circuit Breaker OPEN) | ✅ |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
 
@@ -301,3 +332,5 @@ Body: 없음
 | v0.2.1 | 2026-04-16 | AI_UNAVAILABLE + VALIDATION_ERROR 추가, retryable 플래그 문서화 (autoceo-s4-R2/R3) |
 | v0.2.2 | 2026-04-16 | GET /api/memories 페이지네이션 (offset/limit) (autoceo-s5-R4) |
 | v0.2.3 | 2026-04-16 | POST /api/auth/refresh — JWT 토큰 재발급 (autoceo-s5-R5) |
+| v0.2.4 | 2026-04-16 | GET /api/chat/history ?since 파라미터 추가 (autoceo-s6-R4) |
+| v0.2.5 | 2026-04-16 | POST /api/auth/password/reset/{request,confirm} (autoceo-s6-R5) |

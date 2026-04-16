@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.7.0] — 2026-04-16
+
+### 스트리밍 + 계정 복구 + 검색 최적화 (autoceo 6차 스프린트, 8라운드 완주 — R9 org rate limit로 deferred)
+
+**tmux 오케스트레이션 안정화 + 프롬프트 로깅 (R1)**
+- `architect-cli.sh tmux_send` — paste-buffer 경유 + Enter flush 3회 재시도
+- `docs/worker-prompts/` — 워커 dispatch 프롬프트 자동 기록 (프롬프트 엔지니어링 학습용)
+- 채팅 메시지 복사 (iOS Context Menu / Android LocalClipboardManager)
+- JUnit5 `@Timeout` 5초 (플레이키 방지)
+
+**SSE Phase 2 — Anthropic streaming 실연동 (R2~R5)**
+- 서버: `AiService.chatStream` + OkHttp `BufferedSource` 수동 SSE 파싱 (content_block_delta)
+- 서버: Circuit Breaker 래핑 유지 (OPEN → onError 즉시)
+- iOS: `SSEClient` (`URLSession.bytes`) + `AsyncThrowingStream` + 점점점 애니메이션
+- Android: `SseClient` (OkHttp 수동) + Flow 이벤트 + ChatScreen 점진 표시
+- 끊김 1회 자동 재시도 + latency 계측
+
+**채팅 since 증분 동기화 v0.2.4 (R4)**
+- GET `/api/chat/history?since=ISO8601` — `createdAt > since` ASC
+- 잘못된 since → 400 VALIDATION_ERROR
+
+**Password Reset v0.2.5 (R5, R6)**
+- 서버: V11 `password_reset_tokens` 테이블 + SecureRandom 32자 URL-safe + 30분 만료 + 1회용 + 5분 쿨다운
+- POST `/api/auth/password/reset/request` — 존재 여부 유출 방지 (항상 200)
+- POST `/api/auth/password/reset/confirm` — bcrypt 재해싱
+- 새 ErrorCode `PASSWORD_RESET_TOKEN_INVALID` (400)
+- iOS/Android: 2단계 플로우 (이메일 → 토큰+새 비번 → 성공)
+- 이메일 발송은 로그 출력 (Phase 1 — SMTP 통합 후속)
+
+**검색 최적화 (R7)**
+- 서버: V12 `pg_trgm` extension + GIN indexes (memories.content/title) — PostgreSQL 전용
+- iOS/Android: 최근 검색어 5건 rolling + 매칭 키워드 하이라이트
+
+**E2E 확장 (R8)**
+- 서버: `PasswordResetE2ETest` + `ChatStreamE2ETest` (SSE/Circuit Breaker OPEN/validation)
+- iOS: `AppIntegrationTests` (+329 라인)
+- Android: `AppIntegrationTest` (+341 라인)
+
+**R9 (deferred)**
+- Admin 통계 엔드포인트 + 클라 디버그 뷰 — org rate limit로 dispatch 유실. 다음 세션 재개.
+
+**테스트 메트릭 (R8 시점)**
+- **456 tests · 0 failures** (server 203 / iOS 121 / android 132)
+- 세션 5 대비 +116 tests
+
+**Flyway**: V9 → V11(password_reset_tokens) + V12(pg_trgm)
+**API Contract**: v0.2.3 → v0.2.5
+
 ## [0.6.0] — 2026-04-16
 
 ### 플랫폼 성숙 (autoceo 5차 스프린트, 10라운드)

@@ -9,7 +9,8 @@
 | ~~P-001~~ | ~~JWT 인증 방식 (v0.2)~~ | ~~P1~~ | WO-009 done | 완료 — ADR-006 |
 | P-002 | 실시간 채팅 (WebSocket vs SSE) | P2 | 미정 | 스트리밍 응답 필요 시 |
 | ~~P-003~~ | ~~메모리 추출 AI 프롬프트 최적화~~ | ~~P1~~ | R5 완료 | 프롬프트 강화됨 |
-| P-004 | AI 호출 Circuit Breaker + Multi-Provider Fallback | P2 | 서버 WO 예정 | ai-study Journal 006 패턴 이식 |
+| ~~P-004 Phase 1~~ | ~~Circuit Breaker~~ | ~~P2~~ | autoceo-s4-R2 done | 완료 — ADR-007 |
+| P-004 Phase 2 | Multi-Provider Fallback (OpenAI 등) | P3 | 미정 | 2nd API key 필요 |
 | ~~P-005~~ | ~~AI 출력 런타임 검증 (5-Layer 패턴)~~ | ~~P2~~ | WO-005 done | 완료 |
 | P-006 | Multi-Agent Pipeline 설계 (메모리 추출) | P3 | ADR 필요 | 단일 LLM → 전문화된 에이전트 파이프라인 검토 |
 
@@ -22,3 +23,4 @@
 | P-001 | ADR-006 | JWT 인증 — bcrypt + jjwt + Keychain(iOS) + EncryptedSharedPrefs(Android) |
 | P-003 | — | 프롬프트 최적화 — normalizedName 정규화 규칙 강화, 추출 품질 힌트 |
 | P-005 | — | AI 출력 5-Layer 런타임 검증 — WO-005로 구현 완료 |
+| P-004 Phase 1 | ADR-007 | AI Circuit Breaker — in-memory, 0 dep, CLOSED/OPEN/HALF_OPEN |

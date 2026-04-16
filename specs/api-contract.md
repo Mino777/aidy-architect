@@ -13,7 +13,7 @@
 
 ---
 
-## 1. Auth (v0.2 — 아직 미구현)
+## 1. Auth (v0.2)
 
 ### POST /api/auth/signup
 ```json

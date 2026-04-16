@@ -1,10 +1,10 @@
 # Architect 핸드오프 — 2026-04-16 세션 6 종료
 
 ## 이번 세션 요약
-**키워드**: 실시간 스트리밍 + 계정 복구 + 검색 최적화 + **토큰 경제성 교훈**
+**키워드**: 실시간 스트리밍 + 계정 복구 + 검색 최적화 + **토큰 경제성 교훈** + memory 규칙 실적용
 
 ```
-autoceo 6차 스프린트 (R1~R8 완주, R9 org rate limit로 deferred, R10 compound):
+autoceo 6차 스프린트 (R1~R9 완주, R10 compound):
   R1: tmux flush 자동화 + 프롬프트 로깅 + 채팅 복사
   R2: SSE Phase 2 Anthropic streaming (서버)
   R3: iOS SSE 구독 + 서버 SSE 테스트
@@ -13,7 +13,7 @@ autoceo 6차 스프린트 (R1~R8 완주, R9 org rate limit로 deferred, R10 comp
   R6: Password reset UI (iOS/Android) + 서버 쿨다운
   R7: pg_trgm GIN V12 + 검색 UX
   R8: E2E 통합 테스트 확장
-  R9: [deferred] → 다음 세션 P1
+  R9: [429 재발 후 순차 재개 성공] admin stats + 디버그 뷰
   R10: compound
 ```
 
@@ -76,14 +76,10 @@ tmux attach -t aidy
 
 ## 다음 할 일
 
-### P1 — R9 이월 (s7에서 즉시)
-1. **GET /api/internal/stats/summary** (서버) — 기존 Repository 재사용, 신규 엔드포인트만
-2. **iOS/Android 디버그 뷰** — Settings 화면 통계 정리 + 서버 stats/summary 호출
-
-### P2 — s6 후속
-3. **Password reset SMTP 통합** — 현재 로그 출력만 → 실제 이메일
-4. **SSE Phase 3** — Anthropic 공식 event_type 전수 (error, ping, usage)
-5. **P-004 Phase 2** — Multi-Provider Fallback (OpenAI)
+### P1 — s6 후속
+1. **Password reset SMTP 통합** — 현재 로그 출력만 → 실제 이메일
+2. **SSE Phase 3** — Anthropic 공식 event_type 전수 (error, ping, usage)
+3. **P-004 Phase 2** — Multi-Provider Fallback (OpenAI)
 
 ### P3 — 인프라 개선 (토큰 경제성)
 6. **architect-cli.sh `send --sequential` 모드** — 3-way 직렬 옵션
@@ -94,13 +90,13 @@ tmux attach -t aidy
 
 | 항목 | 수치 |
 |------|------|
-| autoceo 라운드 | R1~R8 완주 / R9 deferred / R10 compound |
-| 워커 커밋 | 24건 (server 8 / ios 8 / android 8) |
-| Architect 커밋 | 예정 (compound 최종 1건) |
+| autoceo 라운드 | R1~R9 완주 / R10 compound |
+| 워커 커밋 | 27건 (server 9 / ios 9 / android 9) |
+| Architect 커밋 | 2건 (compound v0.7.0 + R9 재개 compound) |
 | Flyway | V11 + V12 |
 | API 버전 | v0.2.3 → v0.2.5 |
-| **테스트 실측** | **456 · 0 failures** |
-| 세션 5 대비 증분 | +116 tests |
+| **테스트 실측** | **466 · 0 failures** |
+| 세션 5 대비 증분 | +126 tests |
 | 롤백 | 0 · 보호파일 위반 | 0 |
 
 ## 결정적 발견 — 토큰 경제성

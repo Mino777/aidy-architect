@@ -38,12 +38,15 @@
 - iOS: `AppIntegrationTests` (+329 라인)
 - Android: `AppIntegrationTest` (+341 라인)
 
-**R9 (deferred)**
-- Admin 통계 엔드포인트 + 클라 디버그 뷰 — org rate limit로 dispatch 유실. 다음 세션 재개.
+**R9 — 순차 재개 (admin 통계 + 디버그 뷰)**
+- 서버: GET /api/internal/stats/summary (JWT principal 본인 데이터만, 다른 유저 노출 차단)
+- iOS: SettingsFeature loadStatsSummary + 디버그 섹션 통계 표시
+- Android: SettingsViewModel loadStatsSummary + StateFlow + 섹션 UI
+- 재개 전략: 서버 solo → 클라 2-way → 429 시 순차 continue (짧은 프롬프트로 재개)
 
-**테스트 메트릭 (R8 시점)**
-- **456 tests · 0 failures** (server 203 / iOS 121 / android 132)
-- 세션 5 대비 +116 tests
+**테스트 메트릭 (최종)**
+- **466 tests · 0 failures** (server 207 / iOS 124 / android 135)
+- 세션 5 대비 +126 tests
 
 **Flyway**: V9 → V11(password_reset_tokens) + V12(pg_trgm)
 **API Contract**: v0.2.3 → v0.2.5

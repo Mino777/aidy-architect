@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.4.0] — 2026-04-16
+
+### 보안 + 인증 + 품질 (autoceo 2차 스프린트, 10라운드)
+
+**보안 (R1)**
+- DB 기본 패스워드 제거 — 환경변수 필수화
+
+**JWT 인증 (R2-R4)**
+- WO-009: 서버 JWT 인증 (signup/login + bcrypt + jjwt + 인증 필터)
+- iOS: Auth 화면 + Keychain 토큰 + 401 자동 로그아웃
+- Android: Auth 화면 + EncryptedSharedPreferences + 401 자동 로그아웃
+- X-User-Id 헤더 완전 제거
+- ADR-006: JWT 인증 아키텍처 결정
+
+**프롬프트 최적화 (R5)**
+- normalizedName 정규화 규칙 강화 (동일 인물 호칭 통일)
+- 추출 품질 힌트 추가 (확실하지 않으면 추출 안 함)
+
+**iOS 기능 (R6)**
+- 메모리 검색 (.searchable + debounce 300ms)
+
+**테스트 (R7)**
+- server: PersonService + Auth + 피드백 테스트
+- iOS: PeopleFeature + AuthFeature TestStore
+- Android: PeopleViewModel + AuthViewModel 19건
+
+**문서 (R8-R10)**
+- BACKLOG: P-001/003/005 완료 처리
+- ADR-006: JWT 인증
+
 ## [0.3.0] — 2026-04-16
 
 ### 관계 메모리 Phase 1 (10라운드 autoceo)

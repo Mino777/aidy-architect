@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.5.0] — 2026-04-16
+
+### 안정성 + 관측성 + UX 폴리시 (autoceo 4차 스프린트, 10라운드)
+
+**AI 안정성 (R2)**
+- ADR-007: in-memory Circuit Breaker (P-004 Phase 1) — 0 dependency
+- AI_UNAVAILABLE (503) 에러 코드 신설
+- 서버 다운 구간 stampede 제거 → fast-fail + cooldown 복구
+
+**에러 응답 표준화 (R3)**
+- VALIDATION_ERROR 코드 + 필드별 한국어 메시지 보존
+- api-contract v0.2.1 — Error Codes 표에 retryable 컬럼 문서화
+- iOS/Android ApiError.isRetryable + 채팅 재시도 UI
+- GlobalExceptionHandler MethodArgumentNotValid + HttpMessageNotReadable 분기
+
+**DB 최적화 (R4)**
+- Flyway V8 — 6 복합 인덱스 (memories/chat_messages/persons/person_memories)
+- IF NOT EXISTS로 기존 인덱스와 안전 공존
+- iOS/Android 채팅 자동 스크롤 하단
+
+**관측성 (R5)**
+- RequestIdFilter — X-Request-Id 헤더 + MDC 전파
+- logback 패턴 [%X{requestId}]
+- AiService 구조화 로그 (duration_ms, success, model)
+- 메모리 스와이프 삭제 (iOS/Android 낙관적 UI)
+
+**보안 (R6)**
+- InMemoryRateLimiter — chat 20rpm, auth 10rpm (env 오버라이드)
+- SecurityConfig 보안 헤더 (X-Frame-Options DENY, Referrer-Policy, X-Content-Type-Options)
+- iOS/Android 빈 상태 UI (메모리/인물)
+
+**UX 폴리시 (R7)**
+- Skeleton 로딩 (iOS/Android, shimmer 라이브러리 0)
+- 에러 재시도 UI 일관성
+- RateLimitInterceptor @SpringBootTest 통합 테스트
+
+**접근성 + 한글화 (R8)**
+- iOS accessibilityLabel/Hint + 다크모드 semantic colors
+- Android contentDescription + MaterialTheme.colorScheme 일관성
+- DTO @field validation 메시지 한글화
+
+**테스트 강화 (R9)**
+- 서버 ChatE2ETest (signup → login → chat / 401 / validation)
+- iOS Auth/Chat/Memory Feature 통합 흐름 테스트 (+154 라인)
+- Android Auth/Chat/People ViewModelTest (+208 라인)
+- SecurityConfig @Lazy 순환 의존성 해결
+
+**문서 (R10)**
+- README 갱신 (server) + 신규 (ios, android)
+- OPERATIONS.md (server) — Request-Id, Rate Limit, CB 운영 노트
+- ADR-007 편입
+
+**총 메트릭 (R1-R10)**
+- 커밋: ~30 (server 10 / ios 10 / android 10)
+- 보호파일 위반: 0
+- 롤백: 0
+- 테스트 추가: 대략 +1,200 라인
+
 ## [0.4.0] — 2026-04-16
 
 ### 보안 + 인증 + 품질 (autoceo 2차 스프린트, 10라운드)

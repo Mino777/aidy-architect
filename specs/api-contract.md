@@ -234,19 +234,29 @@
 
 ## Error Codes (전체)
 
-| Code | HTTP | 설명 |
-|------|------|------|
-| EMPTY_MESSAGE | 400 | 빈 메시지 |
-| INVALID_CREDENTIALS | 401 | 로그인 실패 |
-| UNAUTHORIZED | 401 | 인증 필요 |
-| FORBIDDEN | 403 | 권한 없음 |
-| MEMORY_NOT_FOUND | 404 | 메모리 없음 |
-| PERSON_NOT_FOUND | 404 | 인물 없음 |
-| EMPTY_PERSON | 400 | 인물 이름 누락 |
-| DUPLICATE_EMAIL | 409 | 이메일 중복 |
-| RATE_LIMITED | 429 | 요청 초과 |
-| AI_TIMEOUT | 504 | AI 응답 시간 초과 |
-| INTERNAL_ERROR | 500 | 서버 오류 |
+모든 에러 응답 형식: `{ "error": "사용자용 메시지 (ko)", "code": "ERROR_CODE" }`
+
+| Code | HTTP | 설명 | Retryable |
+|------|------|------|:---------:|
+| EMPTY_MESSAGE | 400 | 빈 메시지 | — |
+| VALIDATION_ERROR | 400 | 요청 필드 검증 실패 (error 메시지에 구체 원인) | — |
+| INVALID_CREDENTIALS | 401 | 로그인 실패 | — |
+| UNAUTHORIZED | 401 | 인증 필요 / 토큰 만료 | — |
+| FORBIDDEN | 403 | 권한 없음 | — |
+| MEMORY_NOT_FOUND | 404 | 메모리 없음 | — |
+| PERSON_NOT_FOUND | 404 | 인물 없음 | — |
+| EMPTY_PERSON | 400 | 인물 이름 누락 | — |
+| DUPLICATE_EMAIL | 409 | 이메일 중복 | — |
+| RATE_LIMITED | 429 | 요청 초과 | ✅ |
+| INTERNAL_ERROR | 500 | 서버 오류 | — |
+| AI_UNAVAILABLE | 503 | AI 서비스 일시 중단 (Circuit Breaker OPEN) | ✅ |
+| AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
+
+**클라이언트 처리 규칙**:
+- Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
+- 401 UNAUTHORIZED: 자동 로그아웃 + 로그인 화면 이동 (ADR-006)
+- 4xx NON_RETRYABLE: 토스트/알림만, 재시도 UI 감춤
+- 5xx NON_RETRYABLE (INTERNAL_ERROR): 토스트 + 재시도 버튼은 선택적
 
 ---
 
@@ -257,3 +267,4 @@
 | v0.1 | 2026-04-15 | 초기 스펙 (Chat + Memory + Health) |
 | v0.1.1 | 2026-04-16 | AI_TIMEOUT 에러 코드 추가 (WO-004) |
 | v0.2.0 | 2026-04-16 | People 엔드포인트 + 피드백 API + personDetail 확장 (ADR-005) |
+| v0.2.1 | 2026-04-16 | AI_UNAVAILABLE + VALIDATION_ERROR 추가, retryable 플래그 문서화 (autoceo-s4-R2/R3) |

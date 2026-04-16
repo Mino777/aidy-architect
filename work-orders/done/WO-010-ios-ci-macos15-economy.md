@@ -2,7 +2,7 @@
 
 **담당**: ios
 **우선순위**: P0-긴급 (현재 main CI 빨간불 — Gate 2 차단 상태)
-**상태**: backlog → in-progress → gate-1 → gate-2 → done
+**상태**: done → in-progress → gate-1 → gate-2 → done
 **의존**: 없음
 
 ## 목표
@@ -26,6 +26,20 @@ exit code 134 (SIGABRT)
 
 **원인**: tuist가 macOS 15 강제. macOS 14 runner에서 영원히 못 돈다.
 **한도 초과 아님**: 4월 누적 6 runs (server/ios/android × 2). 분 한도와 무관.
+
+### 추가 발견 (워커 PR 후 — 2026-04-16, 진단 정정)
+요구사항 1~3 적용 PR #1 push 시 GitHub-hosted runner 자체가 차단됨:
+```
+The job was not started because recent account payments have failed
+or your spending limit needs to be increased.
+```
+→ 분 카운트와 별개 사유로 결제 실패 차단. **self-hosted runner 전환으로 GitHub-hosted 의존 자체 제거** 결정.
+
+### 진단 결론 (정정 후)
+- 분 한도: ✅ 여유
+- 결제: ❌ 차단 (별개 사유) → 우회
+- workflow YAML 수정 (req 1~3): ✅ PR #1로 적용 완료, 머지 가능
+- 다음 행동: **req 5 (self-hosted 전환) 추가 적용** → 머지
 
 ## 구현 요구사항
 
@@ -72,6 +86,16 @@ exit code 134 (SIGABRT)
 4. **(선택, 시간 남으면) SPM/Tuist 캐싱**
    - `actions/cache@v4` 로 `~/Library/Developer/Xcode/DerivedData`, `Tuist/Dependencies` 캐싱
    - 매 run 1~3분 절감 (macOS는 분당 가중치 10x — 효과 큼)
+   - **self-hosted 전환 시 불필요**: 로컬 디스크에 캐시 영구 보존됨
+
+5. **🆕 self-hosted runner 전환 (req 4를 대체)** — Architect가 사용자 Mac에 runner 등록 완료
+   - Runner: `jominhoui-mba-ios` / labels: `self-hosted, macOS, ARM64, aidy-ios` / status: online
+   - workflow `runs-on: macos-15` → `runs-on: [self-hosted, macOS, ARM64, aidy-ios]`
+   - 사용자 Mac 환경: macOS 26.3.1, Xcode 26.3, tuist 4.180.0 (이미 설치)
+   - **단순화 가능 step**:
+     - `Select Xcode (latest stable)` (`maxim-lobanov/setup-xcode@v1`) — 시스템 Xcode 26.3 사용 OK. step 제거 또는 유지(idempotent라 큰 비용 없음, 다만 setup-xcode가 macos-26에서 동작할지는 확인 필요)
+     - `Install Tuist` (`brew install --quiet tuist`) — 이미 설치됨, 멱등이라 두면 빠름. 또는 `command -v tuist || brew install tuist` 가드
+   - **주의**: self-hosted라 `runs-on:` 배열만 바꾸면 끝. brew/Xcode step은 보수적으로 유지.
 
 ## 테스트 요구사항
 

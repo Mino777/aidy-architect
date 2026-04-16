@@ -1,3 +1,34 @@
+# Architect 핸드오프 — 2026-04-17 세션 7 (s6 후속 P3 + iOS CI 복구)
+
+## 세션 7 요약 (s6 종료 후 P3 인프라 + WO-010)
+
+**키워드**: P3 토큰 경제성 인프라 + iOS CI 100% fail 복구 + self-hosted runner 전환
+
+**P3 인프라 (v0.7.1)**
+- `architect-cli.sh send-seq` (직렬 dispatch + idle 대기)
+- `tmux_send` 429 자동 backoff
+- `ci-status.sh` (gh CLI + jq, --watch/--json/--since)
+- `/monitor` Phase 6, `/gate-2` Phase 0 통합
+
+**WO-010 iOS CI 복구 (v0.7.2, ADR-009)**
+- 진단 3회 정정 (tuist↔macos14 → 결제 차단 → ai-review 알림 폭탄)
+- self-hosted runner 등록 (사용자 Mac, jominhoui-mba-ios)
+- main `9c3e715` Test run: success, 1m 56s, 124 tests
+- 4월 macOS 분 가중치 ~180min → 0min
+- 후속 WO 3건 등록 (WO-011/012/013)
+
+## WO 현황 (세션 7 종료 시점)
+- done: WO-001 ~ 010 (10건)
+- backlog: WO-011 (Swift 6 Sendable) / WO-012 (Node.js 24 — 3 워커) / WO-013 (워크플로 통합)
+- in-progress: 없음
+
+## 다음 세션 시작 전 체크
+- 사용자 Mac runner 상태: `gh api /repos/Mino777/aidy-ios/actions/runners`
+- 다른 워커 repo (server/android) 도 같은 결제 차단 영향인지 확인 필요 (Linux runner라 영향 다를 수 있음)
+- WO-012 (Node.js 24) 가 가장 시급 — 2026-06-02 강제 마이그레이션
+
+---
+
 # Architect 핸드오프 — 2026-04-16 세션 6 종료
 
 ## 이번 세션 요약

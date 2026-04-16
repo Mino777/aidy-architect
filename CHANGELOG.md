@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.7.2] — 2026-04-17
+
+### iOS CI 복구 — self-hosted runner 전환 (WO-010, ADR-009)
+
+s6-R9 이후 100% 실패 상태였던 iOS CI 복구. 진단 정정 → 의사결정 → 실행 한 사이클.
+
+**진단 진화 (3회 정정)**
+1. 1차: tuist 4.180.0 (macOS 15 SDK) ↔ runner macos-14 미스매치 → exit 134
+2. 2차 (워커 PR push 후): GitHub-hosted runner 결제 차단 — 분 카운트와 별개 사유
+3. 3차 (test.yml만 self-hosted 옮긴 후): ai-review.yml 알림 폭탄 — 자동 머지 봇도 결제 차단
+
+**결정** (ADR-009)
+- iOS CI 전체 self-hosted runner 전환 (사용자 Mac, jominhoui-mba-ios)
+- macOS 26.3.1 + Xcode 26.3 + tuist 4.180.0 사전 설치 환경
+- launchd user agent로 상시 실행
+- test.yml + ai-review.yml 동시 전환 (한 쪽만 옮기면 알림 폭탄)
+
+**워커 PR #1 (squash 3e77334)**
+- runs-on: macos-14 → [self-hosted, macOS, ARM64, aidy-ios]
+- setup-xcode step 제거 (시스템 Xcode 사용)
+- `command -v tuist || brew install --quiet tuist` 가드
+- 트리거 축소: 모든 branch push → main push + PR
+- path filter: Projects/**, Tuist/**, Project.swift, .github/workflows/test.yml
+- iPhone 15 → iPhone 17 destination (Xcode 26 시뮬레이터)
+- timeout-minutes: 30 → 60
+
+**증거**
+- main `9c3e715` Test run: success, 1m 56s, **124 tests / 10 suites passed**
+- self-hosted runner online, 4월 macOS 분 가중치 ~180min → 0min
+
+**부수 산출물**
+- `gates/reviews/gate-2-WO-010-ios.md` 작성
+- `specs/decisions/009-self-hosted-runner.md` (운영 가이드 + 박제 교훈 4건)
+- 후속 WO 3건 backlog: WO-011 (Swift 6 Sendable) / WO-012 (Node.js 24 — 3 워커) / WO-013 (워크플로 통합)
+- 사용자 액션: GitHub Settings → "Allow GitHub Actions to create and approve pull requests" 토글 (Auto Merge PR 자동생성 권한)
+
+**박제 교훈 (ADR-009)**
+1. "한도 초과 아님" ≠ "결제 정상"
+2. PR 1개 = 워크플로 1개 가정 금지 (자동 머지 봇 등 묶여있음)
+3. 인프라 변경 후 알림 폭탄은 진단 신호
+4. self-hosted는 토큰 경제성 + billing 안전 동시 해결 (macOS 분 가중치 10x 회피)
+
 ## [0.7.1] — 2026-04-16
 
 ### 토큰 경제성 인프라 (P3 — s6 후속)

@@ -1,4 +1,4 @@
-# Architect 핸드오프 — 2026-04-16 세션 3 종료
+# Architect 핸드오프 — 2026-04-16 세션 3 (2차 스프린트 후)
 
 ## 이번 세션 요약
 
@@ -23,7 +23,7 @@
 | Memory | ✅ API 완료 | 🟡 카테고리 필터만 | ✅ 리스트+삭제 완료 |
 | People | 📋 설계 완료 | 📋 설계 완료 | 📋 설계 완료 |
 | Settings | — | ❌ 미구현 | ✅ 완료 |
-| Auth | ❌ v0.2 | ❌ v0.2 | ❌ v0.2 |
+| Auth | ✅ JWT 완료 | ✅ Keychain | ✅ EncryptedSharedPrefs |
 | AI 안정성 | ✅ WO-004 완료 | — | — |
 | AI 출력 검증 | 📋 WO-005 backlog | — | — |
 
@@ -58,9 +58,9 @@ claude
 
 ## 다음 할 일 (우선순위)
 
-1. **WO-002/003 Gate 2 + done** 처리 (Phase 1 선행 조건)
-2. **DB default password 제거** (Phase 1 선행 조건)
-3. **WO-006 발행 + /dispatch** — 관계 메모리 Phase 1 서버
+1. **normalizedName 실측 테스트** — 서버 띄워서 실제 LLM 추출 10건 테스트
+2. **Phase 2 WO 기획** — 그룹/브리핑/타임라인/감쇠알림 (데이터 검증 후)
+3. **P-002 WebSocket/SSE** — 스트리밍 채팅 응답 (UX 개선)
    - Person/PersonMemory/MemoryFeedback 테이블
    - UNIQUE(userId, normalizedName) + ON CONFLICT
    - GET /api/memories/people + POST /chat personDetail 확장

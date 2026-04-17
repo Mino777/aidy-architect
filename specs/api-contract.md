@@ -147,6 +147,41 @@ Body: 없음
 { "error": "메시지를 입력해주세요.", "code": "EMPTY_MESSAGE" }
 ```
 
+### POST /api/chat/stream (ADR-008, v0.8)
+SSE 스트리밍 채팅. POST /api/chat의 스트리밍 버전. 기존 POST /api/chat과 공존.
+
+```
+// Request
+POST /api/chat/stream
+Content-Type: application/json
+Authorization: Bearer {JWT}
+
+{ "message": "오늘 점심 12000원 썼어" }
+
+// Response: text/event-stream
+event: token
+data: {"text": "점심"}
+
+event: token
+data: {"text": " 비용"}
+
+event: memory
+data: {"category": "finance", "title": "점심 지출", "content": "12,000원 지출"}
+
+event: done
+data: {"messageId": 42, "totalTokens": 128}
+
+event: error
+data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
+```
+- `token`: 텍스트 청크 (점진적 표시)
+- `memory`: 추출된 메모리 (있으면)
+- `done`: 정상 종료
+- `error`: 에러 후 스트림 종료
+- SseEmitter timeout 30초
+- Circuit Breaker OPEN → 즉시 error 이벤트 + close
+- chat rpm=20 버킷 공유
+
 ### GET /api/chat/history
 최근 대화 히스토리.
 - `since` 쿼리 없음 + offset/limit 없음 → 최근 20건 (오래된 순 반환)

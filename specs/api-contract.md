@@ -149,25 +149,36 @@ Body: 없음
 
 ### GET /api/chat/history
 최근 대화 히스토리.
-- `since` 쿼리 없음 → 최근 20건 (오래된 순 반환)
+- `since` 쿼리 없음 + offset/limit 없음 → 최근 20건 (오래된 순 반환)
 - `?since=2026-04-16T10:00:00Z` (ISO 8601 Instant) → 해당 시각 이후 메시지 오름차순 반환 (증분 동기화용)
 - `since` 파싱 실패 → 400 VALIDATION_ERROR
+- `?offset=0&limit=20` (v0.8) → 페이지네이션. offset >= 0, limit 1~100.
+- offset/limit 사용 시 since 무시.
 
 ```json
 // Response 200
+// Headers (페이지네이션 사용 시):
+//   X-Total-Count: 250
+//   X-Offset: 0
+//   X-Limit: 20
+//   X-Has-More: true
 [
   {
+    "id": 1,
     "role": "user",
     "content": "오늘 점심 12000원 썼어",
     "createdAt": "2026-04-15T22:00:00Z"
   },
   {
+    "id": 2,
     "role": "assistant",
     "content": "점심 비용 12,000원 기록했어요!",
     "createdAt": "2026-04-15T22:00:01Z"
   }
 ]
 ```
+- 페이지네이션 호환성: 기존 since 방식과 공존. offset/limit 있으면 since 무시.
+- `id` 필드 추가 (v0.8): 개별 삭제 시 필요. 기존 클라이언트는 무시 가능.
 
 ### GET /api/chat/stats (v0.5)
 채팅 통계. 사용자의 대화 활동 요약.
@@ -200,6 +211,17 @@ Body: 없음
 - user 메시지 삭제 시: 직후 assistant 메시지도 함께 삭제 (pair)
 - assistant 메시지 단독 삭제: 해당 메시지만 삭제
 - 삭제된 메시지에서 추출된 메모리는 유지 (메모리는 독립 엔티티)
+
+### DELETE /api/chat/history (v0.8)
+전체 대화 삭제. 사용자의 모든 채팅 메시지 삭제.
+
+```json
+// Response 200
+{ "deleted": 128 }
+// Error 401 UNAUTHORIZED
+```
+- 메모리는 유지 (독립 엔티티)
+- 확인 절차는 클라이언트에서 처리 (서버는 단순 실행)
 
 ### GET /api/chat/history/search (v0.3)
 채팅 히스토리 키워드 검색. 사용자/AI 메시지 모두 대상.
@@ -616,4 +638,5 @@ Body: 없음
 | v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
-| v0.7.0 | 2026-04-17 | GET/PUT /api/settings 사용자 설정 동기화 + PUT /api/auth/password 비밀번호 변경 + DELETE /api/auth/account 계정 삭제 (autoceo-s17-R1~R2) |
+| v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
+| v0.8.0 | 2026-04-17 | Chat history pagination (offset/limit) + id필드 + DELETE /api/chat/history 전체 삭제 (autoceo-s17-R3) |

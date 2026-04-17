@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.8.0] — 2026-04-17
+
+### CI 인프라 독립화 — 3 리포 self-hosted runner + Hybrid fallback (WO-012/014/015/016, ADR-010)
+
+**배경**: WO-012 (Node.js 24 호환) dispatch 중 GitHub Actions billing 차단 재발. iOS만 self-hosted(WO-010)라 green, server/android는 blocked. 빌링 복구 불가 → 전체 self-hosted 통합 결정.
+
+**WO-012 Node.js 24 호환**
+- 3 리포 액션 핀 bump: checkout v4→v6, setup-java v4→v5, upload-artifact v4→v7, github-script v7→v9(iOS)/v8(server,android), cache v4→v5(제거 예정)
+- 발견: upload-artifact v5 release note "Node 24 호환" vs action.yml `using: node20` 불일치 → v6 필수
+
+**WO-014 + WO-015 Self-hosted Runner 통합**
+- MBA에 runner 2대 추가 (jominhoui-mba-server, jominhoui-mba-android)
+- JDK 17 (17.0.18) + Android SDK 35 (build-tools 35, platform-tools 37) 세팅
+- server 207 tests, android 135 tests green
+- 발견: `actions/cache` self-hosted에서 15분 hang → ADR-010 §7 제거 규칙
+
+**WO-016 Hybrid Fallback 패턴**
+- GitHub-hosted primary + self-hosted fallback (ADR-010 A 패턴)
+- iOS: self-hosted only 유지 (macOS 분당 10x 계수)
+- **핵심 발견**: `continue-on-error: true` 가 `needs.x.result` 마스킹 → Mark-step 우회 패턴 (ADR-010 §8)
+- android 추가 발견: ai-review merge 가드 패턴
+- 장애 시나리오 실증: primary fail → fallback green 3초 지연
+
+**ADR-010 (신규, 3차 보강)**
+- §6 JDK 버전 정책 (프로젝트 요구 ≠ runner 기본 → setup-java override)
+- §7 self-hosted actions/cache 금지
+- §8 Mark-step 우회 패턴 + merge 가드
+
+**인프라**
+- Self-hosted runner 3대 운영 (iOS + server + android)
+- send-seq 실전 검증 3회 (P3-7 첫 실전)
+- Android SDK command-line tools 시스템 설치
+
 ## [0.7.2] — 2026-04-17
 
 ### iOS CI 복구 — self-hosted runner 전환 (WO-010, ADR-009)

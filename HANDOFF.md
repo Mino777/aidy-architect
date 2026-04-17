@@ -1,3 +1,104 @@
+# Architect 핸드오프 — 2026-04-17 세션 8 (CI 인프라 독립화 4 WO)
+
+## 세션 8 요약 (WO-012/014/015/016 + ADR-010)
+
+**키워드**: Node.js 24 호환 + self-hosted runner 통합 + Hybrid fallback 패턴 + Mark-step 우회
+
+**WO-012 (Node.js 24 호환) → billing 차단 발견 → 방향 전환**
+- 3 리포 send-seq 직렬 dispatch (P3-7 첫 실전)
+- iOS: green + merged (self-hosted 덕에 billing 무관)
+- server/android: billing 차단으로 blocked → self-hosted 전환 결정 (ADR-010)
+
+**WO-014 (server self-hosted) + WO-015 (android self-hosted + SDK 통합)**
+- Architect 선행: 3 runner 등록 + JDK 17 + Android SDK 35 세팅
+- server: 207 tests · 0 failures, actions/cache hang 발견→제거
+- android: 135 tests · 0 failures, JDK 21 요구 발견 (spec 보정)
+
+**WO-016 (Hybrid fallback)**
+- `continue-on-error` masking 버그 발견 → Mark-step 우회 패턴 (ADR-010 §8)
+- android 긴급 tmux 알림 → server main cross-check → merge 가드 패턴 추가 발견
+- server/android 장애 시나리오 실증 완료 (primary fail → fallback green 3초 지연)
+
+## WO 현황 (세션 8 종료 시점)
+
+- done: WO-001 ~ 016 (16건)
+- backlog: WO-011 (Swift 6 Sendable) / WO-013 (워크플로 통합)
+- in-progress: 없음
+
+## 다음 세션 시작 전 체크
+
+1. **billing 상태 확인**: `gh api /repos/Mino777/aidy-server/actions/runs --jq '.workflow_runs[0] | {conclusion, created_at}'` — billing 복구 시 정상 시나리오 검증 필요 (WO-016 deferred)
+2. **3 runner 상태**: `gh api /repos/Mino777/aidy-{ios,server,android}/actions/runners --jq '.runners[] | {name,status,busy}'`
+3. **MBA 디스크**: `df -h /` — Android SDK + Gradle 캐시 누적 추적 (현재 61GB 여유)
+
+## ADR 현황 (총 10건)
+
+- ADR-001 ~ 008: 기존
+- ADR-009: iOS self-hosted runner (WO-010, s7)
+- **ADR-010**: Server/Android self-hosted + Hybrid fallback (WO-014/015/016, **s8**, §6-8 보강)
+
+## 인프라 상태 (s8 종료)
+
+### Self-hosted Runners (MBA, macOS 26.3.1)
+
+| Runner | Labels | Repo | Service |
+|---|---|---|---|
+| jominhoui-mba-ios | self-hosted, macOS, ARM64, aidy-ios | aidy-ios | actions.runner.Mino777-aidy-ios.* |
+| jominhoui-mba-server | self-hosted, macOS, ARM64, aidy-server | aidy-server | actions.runner.Mino777-aidy-server.* |
+| jominhoui-mba-android | self-hosted, macOS, ARM64, aidy-android | aidy-android | actions.runner.Mino777-aidy-android.* |
+
+### Workflow 패턴
+
+| Repo | 패턴 | 근거 |
+|---|---|---|
+| aidy-ios | self-hosted **only** | macOS 분당 계수 10x (ADR-009) |
+| aidy-server | **Hybrid** (gh-hosted primary + self-hosted fallback) | ADR-010 Mark-step §8 |
+| aidy-android | **Hybrid** (동일 + merge 가드) | ADR-010 §8 확장 |
+
+### 환경
+
+| 항목 | 경로/버전 |
+|---|---|
+| JDK 17 (baseline) | `/opt/homebrew/opt/openjdk@17` (17.0.18) |
+| JDK 21 (workflow) | `actions/setup-java@v5` tool-cache (Temurin 21.0.10) |
+| Android SDK | `/opt/homebrew/share/android-commandlinetools` |
+| SDK 컴포넌트 | build-tools 35.0.0, platform-tools 37.0.0, platforms;android-35 |
+
+## 다음 할 일
+
+### P0 — billing 복구 시 즉시
+1. **WO-016 정상 시나리오 검증**: server/android에 빈 커밋 push → primary green + fallback skipped 확인
+2. **github-hosted Android SDK 자동 제공 확인**: primary(ubuntu-latest) assembleDebug 성공 확인
+
+### P1 — 다음 스프린트
+1. **WO-011 (Swift 6 Sendable)** — backlog, iOS 전용
+2. **WO-013 (워크플로 통합)** — backlog, test.yml + ai-review.yml 중복 정리
+3. **Password reset SMTP 통합** — s6 후속
+4. **SSE Phase 3** — Anthropic event_type 전수
+
+### P3 — 인프라 개선
+1. `dispatch.md` Phase 0: billing/quota 사전 체크 step 추가
+2. Spec 예시 코드 dry-run 검증 프로세스 도입 (spec-first-verify-first)
+3. MBA 디스크 모니터링 자동화 (cron or /monitor 확장)
+4. Runner 대기 시간 P95 지표 도입 (ADR-010 §5 보강)
+5. `gradle/actions v6` 라이선스 변경 검토 (별도 ADR)
+
+## 이번 세션 수치
+
+| 항목 | 수치 |
+|---|---|
+| WO 완료 | 4건 (012, 014, 015, 016) |
+| Architect 인프라 세팅 | Runner 2대 등록 + JDK 17 + Android SDK |
+| ADR | 1건 생성 (010) + 3회 보강 (§6, §7, §8) |
+| 워커 테스트 실측 | iOS: green (WO-010 베이스라인) / Server: 207 · 0 fail / Android: 135 · 0 fail |
+| 솔루션 | 1건 (continue-on-error masking) |
+| 회고 | 1건 (s8 compound) |
+| 긴급 대응 | 1건 (WO-016 §1 버그 → ADR-010 §8 → android tmux 알림) |
+| send-seq 실행 | 3회 (WO-012 3워커 / WO-014+015 / WO-016) |
+| 리밋 히트 | 1회 (android WO-015 dispatch 중) |
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 7 (s6 후속 P3 + iOS CI 복구)
 
 ## 세션 7 요약 (s6 종료 후 P3 인프라 + WO-010)
@@ -21,149 +122,3 @@
 - done: WO-001 ~ 010 (10건)
 - backlog: WO-011 (Swift 6 Sendable) / WO-012 (Node.js 24 — 3 워커) / WO-013 (워크플로 통합)
 - in-progress: 없음
-
-## 다음 세션 시작 전 체크
-- 사용자 Mac runner 상태: `gh api /repos/Mino777/aidy-ios/actions/runners`
-- 다른 워커 repo (server/android) 도 같은 결제 차단 영향인지 확인 필요 (Linux runner라 영향 다를 수 있음)
-- WO-012 (Node.js 24) 가 가장 시급 — 2026-06-02 강제 마이그레이션
-
----
-
-# Architect 핸드오프 — 2026-04-16 세션 6 종료
-
-## 이번 세션 요약
-**키워드**: 실시간 스트리밍 + 계정 복구 + 검색 최적화 + **토큰 경제성 교훈** + memory 규칙 실적용
-
-```
-autoceo 6차 스프린트 (R1~R9 완주, R10 compound):
-  R1: tmux flush 자동화 + 프롬프트 로깅 + 채팅 복사
-  R2: SSE Phase 2 Anthropic streaming (서버)
-  R3: iOS SSE 구독 + 서버 SSE 테스트
-  R4: Android SSE 구독 + chat/history since v0.2.4
-  R5: Password reset 서버 + SSE 회복성
-  R6: Password reset UI (iOS/Android) + 서버 쿨다운
-  R7: pg_trgm GIN V12 + 검색 UX
-  R8: E2E 통합 테스트 확장
-  R9: [429 재발 후 순차 재개 성공] admin stats + 디버그 뷰
-  R10: compound
-```
-
-## 현재 상태
-
-### 프로젝트 진행도
-
-| 영역 | 상태 | 신규 (s6) |
-|------|------|----------|
-| Auth | ✅ JWT + Biometric + Password Reset | 6차 |
-| Chat | ✅ SSE Phase 2 실제 스트리밍 | 6차 |
-| Memory | ✅ 페이지네이션 + 검색 GIN | 6차 |
-| People | ✅ | — |
-| 드래프트 큐 | ✅ | — |
-| AI 안정성 | ✅ Circuit Breaker (stream에도 적용) | 6차 확장 |
-| 관측성 | ✅ Request-Id + error_logs + ai_stats + metrics | — |
-| DB 성능 | ✅ V8 인덱스 + V9 user_id + V10 error_logs + V11 password_reset + V12 pg_trgm | 6차 |
-| 테스트 | ✅ 456 tests 실측 + CI 자동화 | 6차 |
-| 도구 | ✅ tmux flush 안정화 + 프롬프트 로깅 | 6차 |
-
-### WO 현황
-- WO-001~009: 전부 done
-- Backlog: 비어있음
-
-### BACKLOG 미결정 이슈
-| ID | 제목 | 긴급도 | 상태 |
-|----|------|--------|------|
-| ~~P-002~~ | ~~SSE vs WebSocket~~ | — | 완료 — ADR-008 Phase 1+2 |
-| ~~P-004 Phase 1~~ | ~~Circuit Breaker~~ | — | 완료 — ADR-007 |
-| P-004 Phase 2 | Multi-Provider Fallback | P3 | 대기 (2nd API key) |
-| P-006 | Multi-Agent Pipeline | P3 | 결정됨 (ADR-004) |
-
-### ADR 현황 (총 8건)
-- ADR-001 ~ 007: 기존
-- ADR-008: SSE 스트리밍 채팅 — **Phase 2 실연동 완료 (s6-R2)**
-
-### API Contract v0.2.5
-- v0.2.4: GET /api/chat/history `?since=ISO8601`
-- v0.2.5: POST /api/auth/password/reset/{request,confirm} + PASSWORD_RESET_TOKEN_INVALID
-
-### Flyway 누적
-V1~V12 (s6에서 V11 password_reset_tokens + V12 pg_trgm 추가)
-
-## 정책 + 도구
-
-### 자동 로깅 인프라 (NEW, s6-R1)
-- `docs/worker-prompts/` — dispatch 프롬프트 자동 기록 (매 send 시 `YYYY-MM-DD.md` append)
-- `docs/worker-prompts/README.md` — 컨벤션 + 학습 포인트
-- `docs/worker-prompts/autoceo-s6-backfill.md` — s6 R1~R9 프롬프트 백필
-
-### tmux 안정화
-- `tmux_send` — paste-buffer + Enter flush 3회 재시도 (긴 프롬프트 유실 차단)
-
-## 다음 세션 시작 방법
-
-```bash
-tmux attach -t aidy
-# 4 panes에 Claude Code 구동 중
-```
-
-## 다음 할 일
-
-### P1 — s6 후속 (다음 작업)
-1. **Password reset SMTP 통합** — 현재 로그 출력만 → 실제 이메일
-2. **SSE Phase 3** — Anthropic 공식 event_type 전수 (error, ping, usage)
-3. **P-004 Phase 2** — Multi-Provider Fallback (OpenAI)
-
-### P3 — 인프라 개선 (토큰 경제성) — ✅ 완료 (0.7.1)
-6. ~~architect-cli.sh `send-seq` 모드~~ — ✅ `send-seq` + `wait-idle` + idle 감지
-7. ~~429 감지 + backoff~~ — ✅ tmux_send 내장, 환경변수 제어
-8. ~~CI 상태 자동 수집~~ — ✅ `ci-status.sh` (watch/json/since/branch/workflow) + /monitor, /gate-2 통합
-
-### 긴급 — iOS CI 빨간불
-- 최근 iOS Test 워크플로 2건 연속 실패 (s6-R9 커밋)
-- `./ci-status.sh --watch --limit 5` 로 재확인 후 조사 필요
-
-## 이번 세션 수치
-
-| 항목 | 수치 |
-|------|------|
-| autoceo 라운드 | R1~R9 완주 / R10 compound |
-| 워커 커밋 | 27건 (server 9 / ios 9 / android 9) |
-| Architect 커밋 | 2건 (compound v0.7.0 + R9 재개 compound) |
-| Flyway | V11 + V12 |
-| API 버전 | v0.2.3 → v0.2.5 |
-| **테스트 실측** | **466 · 0 failures** |
-| 세션 5 대비 증분 | +126 tests |
-| 롤백 | 0 · 보호파일 위반 | 0 |
-
-## 결정적 발견 — 토큰 경제성
-
-**문제**: 토큰 리밋 리셋 직후 17% 소비 + 429 rejection 발생.
-
-**원인**: autoceo 10라운드 × 3 워커 병렬 = 라운드당 4 Claude 인스턴스 동시 활동. architect 1 : worker 3 소비 비율.
-
-**박제된 교훈**:
-- 3-way 병렬 dispatch는 리밋 여유 있을 때만 안전
-- 리셋 직후엔 순차 또는 부분 병렬
-- dispatch 후 5분 간격 폴링 (2분 너무 공격적)
-- 큰 작업은 2 라운드로 쪼개기
-
-**다음 세션 개선 후보**:
-- `architect-cli.sh send --sequential` 모드
-- `tmux_send` 에 429 감지 + 백오프
-- 워커 소모 모니터링 (상태 파일에 cumulative 토큰 추정치)
-
-## 구축된 인프라 (누적)
-
-### Slash Commands (9개)
-`/gate-1`, `/gate-2`, `/monitor`, `/dispatch`, `/compound`, `/cross-session-review`, `/autoceo`, `/ingest`, `/ship`
-
-### CI/CD
-- `.github/workflows/test.yml` × 3 (s5) + `ai-review.yml` × 3 (기존)
-
-### 문서 누적
-- DESIGN.md / CHANGELOG v0.7.0 / HANDOFF (이 파일)
-- ADR 8건 + BACKLOG
-- 회고: autoceo s1~s6 라운드별 + 세션 6건
-- 솔루션 3건
-- API Contract v0.2.5
-- gates 정책 (test-policy × 4 + gate-checklist + security)
-- **worker-prompts 로그 (신규 s6)**

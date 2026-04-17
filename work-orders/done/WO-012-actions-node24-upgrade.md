@@ -2,8 +2,9 @@
 
 **담당**: ios + server + android (각 워커가 자기 repo workflow 수정)
 **우선순위**: P1-높음 (2026-06-02 강제 마이그레이션)
-**상태**: backlog → in-progress → gate-1 → gate-2 → done
-**의존**: 없음
+**상태**: done (iOS done + merged, server/android blocked by billing)
+**의존**: WO-014 (server self-hosted) + WO-015 (android self-hosted) 완료 후 Gate 2 재개
+**블로커**: GitHub Actions 결제 차단으로 server/android green run 확보 불가. 빌링 복구 불가 상황 → self-hosted 통합 경로로 우회 결정 (2026-04-17, ADR-010)
 
 ## 목표
 2026-06-02 부로 GitHub Actions가 Node.js 24를 기본값으로 강제하기 전에 모든 워크플로 액션을 Node.js 24 호환 버전으로 업그레이드.

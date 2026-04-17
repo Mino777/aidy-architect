@@ -84,12 +84,42 @@ git diff main~N..main --stat
 
 ---
 
-## Phase 4 — 단일 커밋
+## Phase 4 — 프로세스 개선 (자동)
+
+스프린트에서 발생한 **인시던트, 병목, 비효율**을 재료로 프로세스를 개선한다.
+유저가 시키지 않아도 compound 시 자동으로 수행.
+
+### 수집할 재료
+1. **인시던트**: Enter flush 실패, 워커 stall, tmux 문제, rate limit 등
+2. **병목**: 테스트 루프, 빌드 시간, 폴링 대기, 워커 무응답
+3. **비효율**: 수동으로 한 작업 중 자동화 가능한 것
+4. **에이전트/스킬 갭**: 있었으면 좋았을 에이전트나 커맨드
+
+### 개선 액션 (해당 시에만)
+- `architect-cli.sh` 패치 → 커밋
+- 에이전트 추가/수정 → 해당 워커 프로젝트에 커밋
+- 슬래시 커맨드 추가/수정 → `.claude/commands/`에 커밋
+- `docs/solutions/` 에 프로토콜/가이드 작성
+- CLAUDE.md 규칙 보강 → 해당 프로젝트에 커밋
+- 피드백 메모리 저장 (다음 세션에서 반복 방지)
+
+### 보고 형식 (retro에 포함)
+```markdown
+## 프로세스 개선 (이번 스프린트)
+| 재료 | 개선 | 파일 |
+|------|------|------|
+| Enter flush 실패 | CLI 5회 재시도 + 실행 마커 | architect-cli.sh |
+| iOS 테스트 루프 10분 | Stall Detection 프로토콜 | docs/solutions/ |
+```
+
+---
+
+## Phase 5 — 단일 커밋
 
 ```bash
 cd ~/Develop/aidy-architect
-git add docs/ specs/ gates/ CLAUDE.md
-git commit -m "compound: WO-{번호} 사이클 문서화"
+git add docs/ specs/ gates/ CLAUDE.md architect-cli.sh .claude/
+git commit -m "compound: WO-{번호} 사이클 문서화 + 프로세스 개선"
 ```
 
 ---

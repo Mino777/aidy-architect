@@ -64,6 +64,14 @@
 | Android SDK | `/opt/homebrew/share/android-commandlinetools` |
 | SDK 컴포넌트 | build-tools 35.0.0, platform-tools 37.0.0, platforms;android-35 |
 
+## QA 에이전트 (s8 신규)
+
+각 워커에 `@qa-tester` 에이전트 배치 (전부 `model: sonnet`):
+- server: Spring Boot + JUnit 5 + MockMvc (207 tests)
+- ios: TCA TestStore + XCTest (124 tests)
+- android: MVVM + MockK + Turbine (135 tests)
+- 모드: `run` / `cover` / `add` / `fix` / `flaky`(또는 `contract`)
+
 ## 다음 할 일
 
 ### P0 — billing 복구 시 즉시

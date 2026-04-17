@@ -97,6 +97,31 @@ Review:   /gate-1 → /gate-2 → /cross-session-review
 Compound: /compound (회고 + 솔루션 + ADR)
 ```
 
+## JIT 검색 (시맨틱 검색)
+
+위키/스펙/가이드 지식이 필요할 때 먼저 검색을 실행:
+
+```bash
+npm run search -- "<질문>" 5 --inject
+```
+
+예시:
+```bash
+npm run search -- "Stall Detection 프로토콜" 3
+npm run search -- "아키텍처 설계 패턴" --inject
+```
+
+**구성:**
+- 모델: `Xenova/multilingual-e5-small` (로컬, 384d)
+- 소스: `docs/` (53개 .md) + 루트 가이드 (5개 .md) = 308개 청크
+- 속도: 1~3ms (brute force, 1000개 미만은 ANN 불필요)
+- 라우터: 기술용어/에러/명시트리거만 검색 실행, 일반대화는 skip
+
+**언제 사용:**
+- 아키텍처 결정 시 기존 스펙/패턴 확인
+- 에러 메시지 → 과거 솔루션 검색
+- WO 구성 시 관련 기준 자료 조회
+
 ## 토큰 최적화 규칙
 
 ### 모델 라우팅

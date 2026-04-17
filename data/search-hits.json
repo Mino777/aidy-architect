@@ -1,0 +1,11 @@
+{
+  "totalQueries": 2,
+  "lastUpdated": "2026-04-17T10:17:52.517Z",
+  "hits": {
+    "docs/solutions/2026-04-17-worker-stall-detection-protocol": 1,
+    "HANDOFF": 1,
+    "docs/retros/session-compound-s9-s11": 1,
+    "CLAUDE": 1,
+    "SYSTEM-GUIDE": 1
+  }
+}

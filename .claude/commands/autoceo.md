@@ -76,8 +76,13 @@ done
 2. `specs/decisions/BACKLOG.md` — 미결정 이슈 확인
 3. `docs/solutions/` — 기존 솔루션 참조
 4. Gate 리뷰 이력 확인: `gates/reviews/` 에서 이전 FAIL 패턴
+5. **JIT 검색** — 이번 라운드 작업 키워드로 관련 지식 조회:
+```bash
+npm run search -- "<이번 작업 키워드>" 3
+```
+   과거 솔루션, ADR, 회고에서 관련 교훈이 있으면 Plan에 반영.
 
-5. 우선순위 자동 결정:
+6. 우선순위 자동 결정:
    - P0: 깨진 빌드/테스트 → 즉시 수정
    - P1: Gate FAIL 잔여 이슈 → 해결
    - P2: TODO/FIXME → 해결

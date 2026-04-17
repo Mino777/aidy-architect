@@ -17,6 +17,13 @@ git diff main~N..main --stat
 
 이번 대화에서의 디버깅/문제해결 과정도 추출.
 
+**JIT 검색으로 관련 과거 지식 조회:**
+```bash
+npm run search -- "<이번 WO 핵심 키워드>" 3
+```
+과거 회고/솔루션에서 유사 패턴이 있으면 "다음에 적용할 것"에 반영.
+Compound 완료 후 인덱스 업데이트: `npm run embed-content`
+
 ---
 
 ## Phase 2 — 3가지 문서 생성 (병렬 가능)
@@ -149,13 +156,17 @@ git diff main~N..main --stat
 
 ---
 
-## Phase 5 — 단일 커밋
+## Phase 5 — 커밋 + JIT 인덱스 갱신
 
 ```bash
 cd ~/Develop/aidy-architect
 git add docs/ specs/ gates/ CLAUDE.md architect-cli.sh .claude/
 git commit -m "compound: WO-{번호} 사이클 문서화 + 프로세스 개선"
+
+# JIT 인덱스 재빌드 (새 문서 반영)
+npm run embed-content
 ```
+인덱스 파일(`data/embeddings.json`)은 .gitignore — 커밋 불필요.
 
 ---
 

@@ -125,6 +125,20 @@ Body: 없음
 ]
 ```
 
+### DELETE /api/chat/{id} (v0.3.1)
+채팅 메시지 개별 삭제. 사용자 본인 메시지 + 해당 AI 응답도 함께 삭제 (pair delete).
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "메시지를 찾을 수 없습니다.", "code": "MESSAGE_NOT_FOUND" }
+// Error 403
+{ "error": "권한이 없습니다.", "code": "FORBIDDEN" }
+```
+- user 메시지 삭제 시: 직후 assistant 메시지도 함께 삭제 (pair)
+- assistant 메시지 단독 삭제: 해당 메시지만 삭제
+- 삭제된 메시지에서 추출된 메모리는 유지 (메모리는 독립 엔티티)
+
 ### GET /api/chat/history/search (v0.3)
 채팅 히스토리 키워드 검색. 사용자/AI 메시지 모두 대상.
 
@@ -188,6 +202,31 @@ Body: 없음
 - offset 또는 limit 중 하나라도 있음 → 페이지네이션 활성화, 4개 헤더 전부 포함
 - limit > 100 → 400 VALIDATION_ERROR
 - offset < 0 → 400 VALIDATION_ERROR
+
+### GET /api/memories/export (v0.3.1)
+전체 메모리 JSON 내보내기. 데이터 포터빌리티 용도.
+
+```json
+// Response 200
+// Content-Type: application/json
+// Content-Disposition: attachment; filename="aidy-memories-2026-04-17.json"
+{
+  "exportedAt": "2026-04-17T14:00:00Z",
+  "totalCount": 23,
+  "memories": [
+    {
+      "id": 42,
+      "category": "finance",
+      "title": "점심 지출",
+      "content": "12,000원 지출",
+      "createdAt": "2026-04-15T22:00:00Z"
+    }
+  ]
+}
+```
+- 카테고리 필터 가능: `?category=finance`
+- 페이지네이션 없음 (전체 export)
+- 파일명: `aidy-memories-{YYYY-MM-DD}.json`
 
 ### GET /api/memories/search
 키워드 검색
@@ -353,6 +392,7 @@ Body: 없음
 | UNAUTHORIZED | 401 | 인증 필요 / 토큰 만료 | — |
 | FORBIDDEN | 403 | 권한 없음 | — |
 | MEMORY_NOT_FOUND | 404 | 메모리 없음 | — |
+| MESSAGE_NOT_FOUND | 404 | 메시지 없음 | — |
 | PERSON_NOT_FOUND | 404 | 인물 없음 | — |
 | EMPTY_PERSON | 400 | 인물 이름 누락 | — |
 | DUPLICATE_EMAIL | 409 | 이메일 중복 | — |
@@ -383,3 +423,4 @@ Body: 없음
 | v0.2.4 | 2026-04-16 | GET /api/chat/history ?since 파라미터 추가 (autoceo-s6-R4) |
 | v0.2.5 | 2026-04-16 | POST /api/auth/password/reset/{request,confirm} (autoceo-s6-R5) |
 | v0.3.0 | 2026-04-17 | PUT /api/memories/{id} 메모리 수정 + GET /api/chat/history/search 채팅 검색 (autoceo-s11-R1) |
+| v0.3.1 | 2026-04-17 | DELETE /api/chat/{id} 메시지 삭제 + GET /api/memories/export 내보내기 (autoceo-s12-R1) |

@@ -1,3 +1,38 @@
+# Architect 핸드오프 — 2026-04-17 세션 12 (채팅 삭제 + 메모리 내보내기)
+
+## 세션 12 요약 (WO-024/025/026 + api-contract v0.3.1)
+
+**키워드**: DELETE /api/chat/{id} pair delete + GET /api/memories/export + Stage 3 개입 1회
+
+**R1**: api-contract v0.3.1 — 채팅 삭제 (pair) + 메모리 내보내기
+**R2**: WO-024 서버 구현 (242 tests, +7)
+**R3**: WO-025 iOS + WO-026 Android 2-way (iOS Stage 3 개입 — tuist test 루프)
+**R4**: Gate 전원 PASS
+
+## WO 현황 (세션 12 종료)
+- done: WO-001 ~ 026 (26건)
+- backlog: 0건
+- in-progress: 없음
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 242 | — | 242 |
+| ios | 124 | 42 | 166 |
+| android | 135 | 35 | 170 |
+| **합계** | **501** | **77** | **578** |
+
+## 다음 할 일
+### P1
+1. Password reset SMTP Phase 2 (외부 서비스 필요)
+2. Multi-Provider Fallback (P-004 Phase 2)
+
+### P2
+1. UI 테스트 실제 시뮬레이터 green 확인
+2. iOS UI test runner crash 조사
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 11 (새 기능 + 프로세스 개선)
 
 ## 세션 11 요약 (WO-021/022/023 + api-contract v0.3 + Stall Detection)

@@ -74,6 +74,19 @@ Body: 없음
 // Error 429 — auth bucket rpm=10 초과
 ```
 
+### PATCH /api/auth/profile (v0.4)
+프로필 수정. 현재는 닉네임만 지원. 서버 동기화용.
+
+```json
+// Request
+{ "nickname": "새닉네임" }
+// Response 200
+{ "userId": 1, "nickname": "새닉네임" }
+// Error 400 VALIDATION_ERROR — 닉네임 빈 문자열 또는 20자 초과
+```
+- nickname 1~20자
+- 다른 필드 무시 (forward-compatible)
+
 ---
 
 ## 2. Chat
@@ -261,6 +274,29 @@ Body: 없음
 - title, content 둘 다 필수 (partial update 미지원, 클라가 기존값 채워서 전송)
 - category, createdAt 변경 불가
 
+### POST /api/memories/{id}/pin (v0.4)
+메모리 핀/언핀 토글.
+
+```json
+// Request
+{ "pinned": true }
+// Response 200
+{
+  "id": 42,
+  "category": "finance",
+  "title": "점심 지출",
+  "content": "12,000원 지출",
+  "pinned": true,
+  "createdAt": "2026-04-15T22:00:00Z"
+}
+// Error 404 MEMORY_NOT_FOUND
+// Error 403 FORBIDDEN
+```
+- `pinned: true` → 핀, `pinned: false` → 언핀
+- GET /api/memories 응답에 `pinned` 필드 추가 (boolean, default false)
+- GET /api/memories?pinned=true → 핀된 메모리만 필터
+- 핀된 메모리는 리스트 상단 고정 (클라이언트 정렬)
+
 ### DELETE /api/memories/{id}
 메모리 삭제
 
@@ -424,3 +460,4 @@ Body: 없음
 | v0.2.5 | 2026-04-16 | POST /api/auth/password/reset/{request,confirm} (autoceo-s6-R5) |
 | v0.3.0 | 2026-04-17 | PUT /api/memories/{id} 메모리 수정 + GET /api/chat/history/search 채팅 검색 (autoceo-s11-R1) |
 | v0.3.1 | 2026-04-17 | DELETE /api/chat/{id} 메시지 삭제 + GET /api/memories/export 내보내기 (autoceo-s12-R1) |
+| v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |

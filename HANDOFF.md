@@ -1,3 +1,39 @@
+# Architect 핸드오프 — 2026-04-17 세션 13 (프로필 수정 + 메모리 핀)
+
+## 세션 13 요약 (WO-027/028/029 + api-contract v0.4)
+
+**키워드**: PATCH /api/auth/profile + POST /api/memories/{id}/pin + Flyway V13
+
+**R1**: api-contract v0.4 — 프로필 수정 + 메모리 핀 토글
+**R2**: WO-027 서버 구현 (2커밋, 8 신규 테스트)
+**R3**: WO-028 iOS + WO-029 Android 2-way (인시던트 없음)
+**R4**: Gate 전원 PASS
+
+## WO 현황 (세션 13 종료)
+- done: WO-001 ~ 029 (29건)
+- backlog: 0건
+- in-progress: 없음
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 250 (+8) | — | 250 |
+| ios | 124 | 42 | 166 |
+| android | 135 | 35 | 170 |
+| **합계** | **509** | **77** | **586** |
+
+## 다음 할 일
+### P1
+1. Password reset SMTP Phase 2
+2. UI 테스트 실제 시뮬레이터 green 확인
+
+### P2
+1. 메모리 카테고리 변경 기능
+2. 대화 그룹핑/스레드
+3. Daily digest (오늘 기억된 것 요약)
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 12 (채팅 삭제 + 메모리 내보내기)
 
 ## 세션 12 요약 (WO-024/025/026 + api-contract v0.3.1)

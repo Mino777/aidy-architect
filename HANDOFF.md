@@ -1,3 +1,53 @@
+# Architect 핸드오프 — 2026-04-17 세션 10 (Backlog 전량 소진)
+
+## 세션 10 요약 (WO-011/013/020 + Backlog 0)
+
+**키워드**: Swift 6 Sendable + 워크플로 DRY + Server 테스트 226 + Backlog 완전 소진
+
+**R1 Housekeeping**: iOS feature→main 머지 (WO-018), Android s9 비차단 수정 3건
+**R2 WO-011 + WO-020**: iOS Swift 6 Sendable(@Sendable 7건), Server 테스트 갭 19건 (207→226)
+**R3 WO-013**: iOS 워크플로 통합 Option B (ai-review.yml → rebase+merge only)
+**R4 Gate**: 전원 PASS (iOS 7/7, Server 7/7, Android 3/3)
+
+## WO 현황 (세션 10 종료)
+
+- **done**: WO-001 ~ 020 (20건)
+- **backlog**: 0건 ← 사상 첫 전량 소진
+- **in-progress**: 없음
+
+## 테스트 베이스라인
+
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 226 | — | 226 |
+| ios | 124 | 42 | 166 |
+| android | 135 | 35 | 170 |
+| **합계** | **485** | **77** | **562** |
+
+## 다음 세션 시작 전 체크
+
+1. **billing**: `gh api /repos/Mino777/aidy-server/actions/runs --jq '.workflow_runs[0] | {conclusion, created_at}'`
+2. **runners**: `gh api /repos/Mino777/aidy-{ios,server,android}/actions/runners --jq '.runners[] | {name,status,busy}'`
+3. **disk**: `df -h /`
+
+## 다음 할 일
+
+### P0 — billing 복구 시
+1. WO-016 정상 시나리오 검증 (primary green → fallback skipped)
+
+### P1 — 새 기능 스프린트
+1. SSE Phase 3 — iOS/Android 클라이언트 SSE 구현
+2. Password reset SMTP Phase 2
+3. Multi-Provider Fallback (P-004 Phase 2)
+
+### P2 — 품질
+1. iOS SWIFT_STRICT_CONCURRENCY = complete 확인
+2. Server Repository 테스트 나머지
+3. Android connectedAndroidTest 실제 에뮬레이터 green 확인
+4. iOS/Android UI 테스트 실제 시뮬레이터 green 확인
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 9 (UI Test Automation Sprint)
 
 ## 세션 9 요약 (WO-018/019 + QA 에이전트 ui 모드)

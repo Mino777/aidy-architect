@@ -306,8 +306,8 @@ build_prompt() {
 1. ~/Develop/aidy-${target}/CLAUDE.md
 2. ~/Develop/aidy-architect/specs/api-contract.md
 3. ~/Develop/aidy-architect/specs/conventions.md
-4. ~/Develop/aidy-architect/gates/test-policy.md + gates/test-policy-${target}.md
-5. ~/Develop/aidy-architect/work-orders/in-progress/${wo_filename}
+4. ~/Develop/aidy-architect/work-orders/in-progress/${wo_filename}
+5. ~/Develop/aidy-architect/gates/test-policy.md + gates/test-policy-${target}.md
 
 work-order의 '구현 요구사항'을 하나씩 구현하고, 완료되면 git commit해줘. 커밋 메시지는 한글로.
 

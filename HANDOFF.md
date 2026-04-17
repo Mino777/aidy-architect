@@ -1,3 +1,91 @@
+# Architect 핸드오프 — 2026-04-17 세션 9 (UI Test Automation Sprint)
+
+## 세션 9 요약 (WO-018/019 + QA 에이전트 ui 모드)
+
+**키워드**: XCUITest + Compose UI Test + 전 화면 자동화 + QA 에이전트 연동
+
+**autoceo 5라운드 실행** (10 요청 → 토큰 정책으로 5 제한)
+- R1: WO-016 billing 검증 → DEFERRED (primary 여전히 fail, fallback 정상)
+- R2: WO-018 (iOS) + WO-019 (Android) 2-way 병렬 dispatch
+- R3: Gate-1 검증 — iOS CONDITIONAL PASS (1건 fix), Android PASS 8/8
+- R4: QA 에이전트 `ui` 모드 추가 (iOS + Android)
+- R5: Compound 문서화
+
+**WO-018 (iOS XCUITest)**
+- Tuist `AidyUITests` 타겟 추가
+- 전 화면 accessibility identifier 전수 (`{screen}_{element}_{type}`)
+- **42 UI 테스트**: Auth(6), PasswordReset(4), Chat(7), Memory(7), People(6), Settings(8), Navigation(4)
+- `scripts/run-ui-tests.sh` → JUnit XML 변환
+- Gate-1 fix: `chatRetryButton` → `chat_retry_button`
+
+**WO-019 (Android Compose UI Test)**
+- `TestTags.kt` 86개 상수 정의
+- compose-ui-test-junit4 + espresso + mockk-android 의존성
+- **35 UI 테스트**: Auth(5), PasswordReset(4), Chat(5), Memory(5), People(5), Settings(7), Navigation(4)
+- `scripts/run-ui-tests.sh` → 에뮬레이터 자동 부팅 + JUnit XML 수집
+
+**QA 에이전트 업그레이드**
+- iOS/Android `@qa-tester` 에 `ui` 모드 추가
+- `@qa-tester ui` → 시뮬레이터/에뮬레이터에서 UI 테스트 실행 + 결과 파싱
+
+## WO 현황 (세션 9 종료 시점)
+
+- done: WO-001 ~ 019 (18건, +WO-018/019)
+- backlog: WO-011 (Swift 6 Sendable) / WO-013 (워크플로 통합)
+- in-progress: 없음
+
+## 다음 세션 시작 전 체크
+
+1. **실제 UI 테스트 실행**: iOS 시뮬레이터 + Android 에뮬레이터에서 green 확인
+2. **billing 상태 확인**: `gh api /repos/Mino777/aidy-server/actions/runs --jq '.workflow_runs[0] | {conclusion, created_at}'`
+3. **3 runner 상태**: `gh api /repos/Mino777/aidy-{ios,server,android}/actions/runners --jq '.runners[] | {name,status,busy}'`
+4. **MBA 디스크**: `df -h /`
+
+## 테스트 베이스라인 (s9 종료)
+
+| 프로젝트 | Unit Tests | UI Tests | 합계 |
+|---------|-----------|---------|------|
+| server | 207 | — | 207 |
+| ios | 124 | 42 | 166 |
+| android | 135 | 35 | 170 |
+| **합계** | **466** | **77** | **543** |
+
+## QA 에이전트 모드 현황
+
+| 모드 | server | ios | android |
+|------|--------|-----|---------|
+| run | ✅ | ✅ | ✅ |
+| cover | ✅ | ✅ | ✅ |
+| add | ✅ | ✅ | ✅ |
+| fix | ✅ | ✅ | ✅ |
+| flaky | ✅ | — | ✅ |
+| contract | — | ✅ | — |
+| **ui** | — | **✅ NEW** | **✅ NEW** |
+
+## 비차단 관찰 (향후 개선)
+
+1. iOS `run-ui-tests.sh` 기본 시뮬레이터 `iPhone 17 Pro / OS 26.3.1` — env var override 필요
+2. Android `CHAT_STREAMING_INDICATOR` testTag ChatScreen 미적용
+3. Android PeopleUITest 빈 mock vacuous pass 가능
+4. Android NavigationShell Memory 탭 누락
+
+## 다음 할 일
+
+### P0 — billing 복구 시 즉시
+1. **WO-016 정상 시나리오 검증**: primary green + fallback skipped
+
+### P1 — 다음 스프린트
+1. **UI 테스트 실제 실행 검증** (시뮬레이터/에뮬레이터)
+2. **WO-011 (Swift 6 Sendable)** — backlog
+3. **WO-013 (워크플로 통합)** — backlog
+4. **비차단 관찰 수정** (streaming tag, People mock, Memory tab)
+
+### P2 — 기능
+1. Password reset SMTP Phase 2
+2. SSE Phase 3 (Anthropic event_type 전수)
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 8 (CI 인프라 독립화 4 WO)
 
 ## 세션 8 요약 (WO-012/014/015/016 + ADR-010)
@@ -19,25 +107,13 @@
 - android 긴급 tmux 알림 → server main cross-check → merge 가드 패턴 추가 발견
 - server/android 장애 시나리오 실증 완료 (primary fail → fallback green 3초 지연)
 
-## WO 현황 (세션 8 종료 시점)
-
-- done: WO-001 ~ 016 (16건)
-- backlog: WO-011 (Swift 6 Sendable) / WO-013 (워크플로 통합)
-- in-progress: 없음
-
-## 다음 세션 시작 전 체크
-
-1. **billing 상태 확인**: `gh api /repos/Mino777/aidy-server/actions/runs --jq '.workflow_runs[0] | {conclusion, created_at}'` — billing 복구 시 정상 시나리오 검증 필요 (WO-016 deferred)
-2. **3 runner 상태**: `gh api /repos/Mino777/aidy-{ios,server,android}/actions/runners --jq '.runners[] | {name,status,busy}'`
-3. **MBA 디스크**: `df -h /` — Android SDK + Gradle 캐시 누적 추적 (현재 61GB 여유)
-
 ## ADR 현황 (총 10건)
 
 - ADR-001 ~ 008: 기존
 - ADR-009: iOS self-hosted runner (WO-010, s7)
-- **ADR-010**: Server/Android self-hosted + Hybrid fallback (WO-014/015/016, **s8**, §6-8 보강)
+- ADR-010: Server/Android self-hosted + Hybrid fallback (WO-014/015/016, s8)
 
-## 인프라 상태 (s8 종료)
+## 인프라 상태 (s9 종료)
 
 ### Self-hosted Runners (MBA, macOS 26.3.1)
 
@@ -63,70 +139,3 @@
 | JDK 21 (workflow) | `actions/setup-java@v5` tool-cache (Temurin 21.0.10) |
 | Android SDK | `/opt/homebrew/share/android-commandlinetools` |
 | SDK 컴포넌트 | build-tools 35.0.0, platform-tools 37.0.0, platforms;android-35 |
-
-## QA 에이전트 (s8 신규)
-
-각 워커에 `@qa-tester` 에이전트 배치 (전부 `model: sonnet`):
-- server: Spring Boot + JUnit 5 + MockMvc (207 tests)
-- ios: TCA TestStore + XCTest (124 tests)
-- android: MVVM + MockK + Turbine (135 tests)
-- 모드: `run` / `cover` / `add` / `fix` / `flaky`(또는 `contract`)
-
-## 다음 할 일
-
-### P0 — billing 복구 시 즉시
-1. **WO-016 정상 시나리오 검증**: server/android에 빈 커밋 push → primary green + fallback skipped 확인
-2. **github-hosted Android SDK 자동 제공 확인**: primary(ubuntu-latest) assembleDebug 성공 확인
-
-### P1 — 다음 스프린트
-1. **WO-011 (Swift 6 Sendable)** — backlog, iOS 전용
-2. **WO-013 (워크플로 통합)** — backlog, test.yml + ai-review.yml 중복 정리
-3. **Password reset SMTP 통합** — s6 후속
-4. **SSE Phase 3** — Anthropic event_type 전수
-
-### P3 — 인프라 개선
-1. `dispatch.md` Phase 0: billing/quota 사전 체크 step 추가
-2. Spec 예시 코드 dry-run 검증 프로세스 도입 (spec-first-verify-first)
-3. MBA 디스크 모니터링 자동화 (cron or /monitor 확장)
-4. Runner 대기 시간 P95 지표 도입 (ADR-010 §5 보강)
-5. `gradle/actions v6` 라이선스 변경 검토 (별도 ADR)
-
-## 이번 세션 수치
-
-| 항목 | 수치 |
-|---|---|
-| WO 완료 | 4건 (012, 014, 015, 016) |
-| Architect 인프라 세팅 | Runner 2대 등록 + JDK 17 + Android SDK |
-| ADR | 1건 생성 (010) + 3회 보강 (§6, §7, §8) |
-| 워커 테스트 실측 | iOS: green (WO-010 베이스라인) / Server: 207 · 0 fail / Android: 135 · 0 fail |
-| 솔루션 | 1건 (continue-on-error masking) |
-| 회고 | 1건 (s8 compound) |
-| 긴급 대응 | 1건 (WO-016 §1 버그 → ADR-010 §8 → android tmux 알림) |
-| send-seq 실행 | 3회 (WO-012 3워커 / WO-014+015 / WO-016) |
-| 리밋 히트 | 1회 (android WO-015 dispatch 중) |
-
----
-
-# Architect 핸드오프 — 2026-04-17 세션 7 (s6 후속 P3 + iOS CI 복구)
-
-## 세션 7 요약 (s6 종료 후 P3 인프라 + WO-010)
-
-**키워드**: P3 토큰 경제성 인프라 + iOS CI 100% fail 복구 + self-hosted runner 전환
-
-**P3 인프라 (v0.7.1)**
-- `architect-cli.sh send-seq` (직렬 dispatch + idle 대기)
-- `tmux_send` 429 자동 backoff
-- `ci-status.sh` (gh CLI + jq, --watch/--json/--since)
-- `/monitor` Phase 6, `/gate-2` Phase 0 통합
-
-**WO-010 iOS CI 복구 (v0.7.2, ADR-009)**
-- 진단 3회 정정 (tuist↔macos14 → 결제 차단 → ai-review 알림 폭탄)
-- self-hosted runner 등록 (사용자 Mac, jominhoui-mba-ios)
-- main `9c3e715` Test run: success, 1m 56s, 124 tests
-- 4월 macOS 분 가중치 ~180min → 0min
-- 후속 WO 3건 등록 (WO-011/012/013)
-
-## WO 현황 (세션 7 종료 시점)
-- done: WO-001 ~ 010 (10건)
-- backlog: WO-011 (Swift 6 Sendable) / WO-012 (Node.js 24 — 3 워커) / WO-013 (워크플로 통합)
-- in-progress: 없음

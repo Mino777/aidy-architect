@@ -696,6 +696,33 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 
 ---
 
+## Rate Limit 헤더 (v0.9)
+
+모든 rate-limited 응답에 다음 헤더를 포함:
+
+```
+X-RateLimit-Limit: 20          // 분당 최대 요청 수
+X-RateLimit-Remaining: 15      // 남은 요청 수
+X-RateLimit-Reset: 1714420800  // 리셋 Unix timestamp (초)
+```
+
+429 응답 시 추가:
+```
+Retry-After: 30                // 재시도까지 대기 초
+```
+
+**버킷별 제한:**
+| 버킷 | RPM | 적용 엔드포인트 |
+|-------|-----|-----------------|
+| chat | 20 | /api/chat, /api/chat/stream |
+| auth | 10 | /api/auth/* |
+
+**클라이언트 처리:**
+- 429 수신 시: `Retry-After` 초만큼 대기 후 재시도 버튼 활성화
+- 남은 요청 0 접근 시: 선제적 UI 경고 (선택)
+
+---
+
 ## 버전 히스토리
 
 | 버전 | 날짜 | 변경 |
@@ -714,4 +741,5 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
 | v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
-| v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + GET /api/memories/insights 인사이트 (autoceo-s17-R3~R4) |
+| v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + Memory Insights (autoceo-s17-R3~R4) |
+| v0.9.0 | 2026-04-17 | Rate limit 헤더 (X-RateLimit-*) + Retry-After (autoceo-s18-R2) |

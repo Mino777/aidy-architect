@@ -517,6 +517,46 @@ Body: 없음
 
 ---
 
+## 5.5 Memory Insights (v0.8)
+
+### GET /api/memories/insights
+메모리 활동 인사이트. 카테고리별 분포 + 최근 7일 활동 추이.
+
+```json
+// Response 200
+{
+  "totalMemories": 47,
+  "pinnedCount": 5,
+  "categoryDistribution": [
+    { "category": "finance", "displayName": "금융", "count": 15, "percentage": 31.9 },
+    { "category": "schedule", "displayName": "일정", "count": 12, "percentage": 25.5 },
+    { "category": "work", "displayName": "업무", "count": 8, "percentage": 17.0 },
+    { "category": "people", "displayName": "인맥", "count": 5, "percentage": 10.6 },
+    { "category": "health", "displayName": "건강", "count": 4, "percentage": 8.5 },
+    { "category": "preference", "displayName": "취향", "count": 2, "percentage": 4.3 },
+    { "category": "general", "displayName": "일반", "count": 1, "percentage": 2.1 }
+  ],
+  "weeklyActivity": [
+    { "date": "2026-04-11", "count": 3 },
+    { "date": "2026-04-12", "count": 7 },
+    { "date": "2026-04-13", "count": 5 },
+    { "date": "2026-04-14", "count": 2 },
+    { "date": "2026-04-15", "count": 8 },
+    { "date": "2026-04-16", "count": 12 },
+    { "date": "2026-04-17", "count": 10 }
+  ],
+  "streakDays": 7,
+  "mostActiveCategory": "finance"
+}
+```
+- `categoryDistribution`: count 내림차순 정렬, percentage 소수점 1자리
+- `weeklyActivity`: 최근 7일 (오늘 포함), 메모리 생성 수
+- `streakDays`: 연속 메모리 생성일 (오늘부터 역산)
+- `mostActiveCategory`: count 최대 카테고리 (동률 시 첫 번째)
+- 메모리 0건이면: totalMemories=0, 빈 배열들, streakDays=0, mostActiveCategory=null
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -639,4 +679,4 @@ Body: 없음
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
 | v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
-| v0.8.0 | 2026-04-17 | Chat history pagination (offset/limit) + id필드 + DELETE /api/chat/history 전체 삭제 (autoceo-s17-R3) |
+| v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + GET /api/memories/insights 인사이트 (autoceo-s17-R3~R4) |

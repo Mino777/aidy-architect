@@ -1,3 +1,41 @@
+# Architect 핸드오프 — 2026-04-17 세션 15 (메모리 일괄 작업 + 채팅 통계)
+
+## 세션 15 요약 (WO-033/034/035 + api-contract v0.5)
+
+**키워드**: POST /api/memories/batch + GET /api/chat/stats + Android 429 backoff + plan mode 복구
+
+**R2**: WO-033 서버 구현 (264 tests, +8)
+**R3**: WO-034 iOS + WO-035 Android 2-way (Android plan mode 걸림 → 수동 복구, iOS Stage 3 개입)
+**R4**: Gate 전원 PASS
+
+## WO 현황 (세션 15 종료)
+- done: WO-001 ~ 035 (35건)
+- backlog: 0건
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 264 (+8) | — | 264 |
+| ios | 160 (+11) | 42 | 202 |
+| android | 155 | 35 | 190 |
+| **합계** | **579** | **77** | **656** |
+
+## 인시던트
+- Android: plan mode permission 대기 → "no-claude" 상태 → 수동 "1" 선택으로 복구
+- iOS: xcodebuild test 루프 (searchQueryChanged 테스트) → Stage 3 개입
+
+## 다음 할 일
+### P1
+1. Password reset SMTP Phase 2
+2. 대화 그룹핑/스레드
+3. Daily digest
+
+### P2
+1. iOS xcodebuild 테스트 루프 근본 해결 (TCA TestStore exhaustive assertion 패턴)
+2. Android plan mode 자동 bypass 방지
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 14 (품질 강화 — 테스트 +177)
 
 ## 세션 14 요약 (WO-030/031/032 — 테스트 대폭 강화)

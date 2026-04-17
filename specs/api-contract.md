@@ -138,6 +138,24 @@ Body: 없음
 ]
 ```
 
+### GET /api/chat/stats (v0.5)
+채팅 통계. 사용자의 대화 활동 요약.
+
+```json
+// Response 200
+{
+  "totalMessages": 128,
+  "userMessages": 64,
+  "assistantMessages": 64,
+  "firstMessageAt": "2026-04-15T10:00:00Z",
+  "lastMessageAt": "2026-04-17T14:30:00Z",
+  "totalMemoriesExtracted": 23,
+  "dailyAverage": 21.3
+}
+```
+- dailyAverage: totalMessages / (활동 일수). 소수점 1자리.
+- 메시지 0건이면 모든 숫자 0, 날짜 null.
+
 ### DELETE /api/chat/{id} (v0.3.1)
 채팅 메시지 개별 삭제. 사용자 본인 메시지 + 해당 AI 응답도 함께 삭제 (pair delete).
 
@@ -215,6 +233,26 @@ Body: 없음
 - offset 또는 limit 중 하나라도 있음 → 페이지네이션 활성화, 4개 헤더 전부 포함
 - limit > 100 → 400 VALIDATION_ERROR
 - offset < 0 → 400 VALIDATION_ERROR
+
+### POST /api/memories/batch (v0.5)
+메모리 일괄 작업. 다중 선택 후 일괄 삭제 또는 일괄 핀 설정.
+
+```json
+// Request
+{
+  "action": "delete",       // "delete" | "pin" | "unpin"
+  "memoryIds": [42, 43, 44]
+}
+// Response 200 (action: delete)
+{ "affected": 3 }
+// Response 200 (action: pin/unpin)
+{ "affected": 3 }
+// Error 400 VALIDATION_ERROR — action 미지원 또는 memoryIds 빈 배열
+```
+- memoryIds 최대 50개 (초과 시 400 VALIDATION_ERROR)
+- 본인 소유 메모리만 처리, 타인 메모리는 무시 (에러 없이 skip)
+- delete: 해당 메모리 삭제
+- pin/unpin: pinned 필드 일괄 변경
 
 ### GET /api/memories/export (v0.3.1)
 전체 메모리 JSON 내보내기. 데이터 포터빌리티 용도.
@@ -461,3 +499,4 @@ Body: 없음
 | v0.3.0 | 2026-04-17 | PUT /api/memories/{id} 메모리 수정 + GET /api/chat/history/search 채팅 검색 (autoceo-s11-R1) |
 | v0.3.1 | 2026-04-17 | DELETE /api/chat/{id} 메시지 삭제 + GET /api/memories/export 내보내기 (autoceo-s12-R1) |
 | v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |
+| v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |

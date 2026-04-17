@@ -87,6 +87,37 @@ Body: 없음
 - nickname 1~20자
 - 다른 필드 무시 (forward-compatible)
 
+### PUT /api/auth/password (v0.7)
+로그인 상태에서 비���번호 변경. 현재 비밀번호 확인 후 새 비밀번호로 교체.
+
+```json
+// Request
+{
+  "currentPassword": "string",
+  "newPassword": "string"
+}
+// Response 200
+{ "message": "비밀번호가 변경되었습니��." }
+// Error 400 VALIDATION_ERROR — newPassword 8자 미만
+// Error 401 INVALID_CREDENTIALS — currentPassword 불일치
+```
+- newPassword: 8자 이상
+- currentPassword bcrypt 비교
+- 성공 후 기존 JWT 유효 (rotation 미적용)
+
+### DELETE /api/auth/account (v0.7)
+계정 영구 삭제. 모든 관련 데이터 (채팅, 메모리, 설정 등) 함께 삭제.
+
+```json
+// Request
+{ "password": "string" }
+// Response 204 (No Content)
+// Error 401 INVALID_CREDENTIALS — 비밀번호 불일치
+```
+- 비밀번호 확인 필수 (실수 방지)
+- CASCADE 삭제: User → ChatMessage, Memory, PersonMemory, UserSettings, PasswordResetToken
+- 삭제 후 JWT 무효화 (user not found)
+
 ---
 
 ## 2. Chat
@@ -585,4 +616,4 @@ Body: 없음
 | v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
-| v0.7.0 | 2026-04-17 | GET/PUT /api/settings 사용자 설정 동기화 (autoceo-s17-R1) |
+| v0.7.0 | 2026-04-17 | GET/PUT /api/settings 사용자 설정 동기화 + PUT /api/auth/password 비밀번호 변경 + DELETE /api/auth/account 계정 삭제 (autoceo-s17-R1~R2) |

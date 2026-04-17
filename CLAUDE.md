@@ -104,8 +104,9 @@ Compound: /compound (회고 + 솔루션 + ADR)
 - Explore subagent로 코드 탐색 격리 (새 컨텍스트, haiku 전용)
 - `/compact` 습관화 — 대화 길어지면 압축
 
-### 캐시 보존
+### 캐시 보존 (Frozen Snapshot 원칙)
 - 활성 세션 중 CLAUDE.md 수정 금지 (캐시 전체 무효화 + 1.25x 오버헤드)
+- 변경이 필요하면 메모리에 기록만 하고, `/compound` Phase 3에서 일괄 반영
 - 5분 TTL — 휴식 전 세션 정리, 돌아와서 새 세션 시작
 
 ### Prefix 다이어트

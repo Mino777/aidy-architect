@@ -464,7 +464,57 @@ Body: 없음
 
 ---
 
-## 6. Health
+## 6. Settings (v0.7)
+
+사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
+
+### GET /api/settings
+현재 설정 조회. 설정이 없으면 기본값으로 생성 후 반환.
+
+```json
+// Response 200
+{
+  "theme": "system",
+  "haptics": true,
+  "notification": true,
+  "language": "ko"
+}
+```
+
+### PUT /api/settings
+설정 전체 또는 일부 업데이트. 전달된 필드만 변경, 나머지 유지 (partial update).
+
+```json
+// Request (전체 또는 일부)
+{
+  "theme": "dark",
+  "haptics": false
+}
+// Response 200
+{
+  "theme": "dark",
+  "haptics": false,
+  "notification": true,
+  "language": "ko"
+}
+// Error 400 VALIDATION_ERROR — theme enum 미일치 등
+```
+
+**설정 필드:**
+
+| 필드 | 타입 | 기본값 | 허용 값 |
+|------|------|--------|---------|
+| theme | string | "system" | "system", "light", "dark" |
+| haptics | boolean | true | true, false |
+| notification | boolean | true | true, false |
+| language | string | "ko" | "ko", "en" |
+
+- 미인식 필드는 무시 (forward-compatible)
+- 인증 필수
+
+---
+
+## 7. Health
 
 ### GET /api/health
 ```json
@@ -535,3 +585,4 @@ Body: 없음
 | v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
+| v0.7.0 | 2026-04-17 | GET/PUT /api/settings 사용자 설정 동기화 (autoceo-s17-R1) |

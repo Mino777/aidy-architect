@@ -1,3 +1,37 @@
+# Architect 핸드오프 — 2026-04-17 세션 16 (통합 검색 + 카테고리 변경)
+
+## 세션 16 요약 (WO-036/037/038 + api-contract v0.6)
+
+**키워드**: GET /api/search 통합 검색 + PUT memories category 변경 + JIT 검색 첫 실전
+
+**R1**: api-contract v0.6 + JIT 검색으로 과거 교훈 조회 (첫 실전 사용)
+**R2**: WO-036 서버 구현 (271 tests, +7)
+**R3**: WO-037 iOS + WO-038 Android 2-way (인시던트 0건!)
+**R4**: Gate 전원 PASS
+
+## WO 현황 (세션 16 종료)
+- done: WO-001 ~ 038 (38건)
+- backlog: 0건
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 271 (+7) | — | 271 |
+| ios | 169 (+9) | 42 | 211 |
+| android | 155 | 35 | 190 |
+| **합계** | **595** | **77** | **672** |
+
+## 다음 할 일
+### P1
+1. Daily digest / 대화 요약
+2. People merge (중복 인물 병합)
+
+### P2
+1. Password reset SMTP Phase 2
+2. iOS xcodebuild 테스트 시간 최적화
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 15 (메모리 일괄 작업 + 채팅 통계)
 
 ## 세션 15 요약 (WO-033/034/035 + api-contract v0.5)

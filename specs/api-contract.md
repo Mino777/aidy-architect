@@ -295,22 +295,25 @@ Body: 없음
 // Request
 {
   "title": "수정된 제목",
-  "content": "수정된 내용"
+  "content": "수정된 내용",
+  "category": "work"          // 선택 — 미포함 시 기존 유지
 }
 // Response 200
 {
   "id": 42,
-  "category": "finance",
+  "category": "work",
   "title": "수정된 제목",
   "content": "수정된 내용",
+  "pinned": false,
   "createdAt": "2026-04-15T22:00:00Z"
 }
-// Error 400 VALIDATION_ERROR — title 또는 content 빈 문자열
+// Error 400 VALIDATION_ERROR — title/content 빈 문자열 또는 category enum 미일치
 // Error 404 MEMORY_NOT_FOUND
 // Error 403 FORBIDDEN — 다른 사용자의 메모리
 ```
-- title, content 둘 다 필수 (partial update 미지원, 클라가 기존값 채워서 전송)
-- category, createdAt 변경 불가
+- title, content 필수. category 선택 (미포함 시 기존 유지).
+- createdAt 변경 불가
+- category 변경 시 Memory Categories enum 값만 허용, 그 외 → 400 VALIDATION_ERROR
 
 ### POST /api/memories/{id}/pin (v0.4)
 메모리 핀/언핀 토글.
@@ -430,7 +433,38 @@ Body: 없음
 
 ---
 
-## 5. Health
+## 5. Search
+
+### GET /api/search (v0.6)
+통합 검색. 채팅, 메모리, 인물을 동시에 검색하여 타입별 그룹으로 반환.
+
+```json
+// Query: ?q=점심
+// Response 200
+{
+  "query": "점심",
+  "results": {
+    "chat": [
+      { "role": "user", "content": "오늘 점심 12000원 썼어", "createdAt": "2026-04-15T22:00:00Z" }
+    ],
+    "memories": [
+      { "id": 42, "category": "finance", "title": "점심 지출", "content": "12,000원 지출", "pinned": false, "createdAt": "2026-04-15T22:00:00Z" }
+    ],
+    "people": [
+      { "normalizedName": "김팀장", "relationship": "직장 상사", "latestTrait": "스타벅스 선호", "memoryCount": 3 }
+    ]
+  },
+  "counts": { "chat": 1, "memories": 1, "people": 1, "total": 3 }
+}
+```
+- `q` 필수, 빈 문자열 → 400 VALIDATION_ERROR
+- 각 타입 최대 10건 (최신순)
+- 채팅: content LIKE, 메모리: title+content LIKE, 인물: normalizedName+trait LIKE
+- case-insensitive
+
+---
+
+## 6. Health
 
 ### GET /api/health
 ```json
@@ -500,3 +534,4 @@ Body: 없음
 | v0.3.1 | 2026-04-17 | DELETE /api/chat/{id} 메시지 삭제 + GET /api/memories/export 내보내기 (autoceo-s12-R1) |
 | v0.4.0 | 2026-04-17 | PATCH /api/auth/profile + POST /api/memories/{id}/pin 핀 토글 (autoceo-s13-R1) |
 | v0.5.0 | 2026-04-17 | POST /api/memories/batch 일괄 작업 + GET /api/chat/stats 통계 (autoceo-s15-R1) |
+| v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |

@@ -1,3 +1,40 @@
+# Architect 핸드오프 — 2026-04-17 세션 14 (품질 강화 — 테스트 +177)
+
+## 세션 14 요약 (WO-030/031/032 — 테스트 대폭 강화)
+
+**키워드**: 3-way 동시 dispatch + E2E/Feature/ViewModel 테스트 177건 추가
+
+**R1**: 3-way 동시 dispatch (독립 작업, API 변경 없음)
+- Server: WO-030 E2E 7건 (v0.3~v0.4 엔드포인트)
+- iOS: WO-031 Feature 95건 (editMemory/togglePin/search/delete/export/profile)
+- Android: WO-032 ViewModel 75건 (동일 6기능)
+**R3**: Gate 전원 PASS
+**인시던트**: Android 429 → CLI backoff 자동 대응, iOS tuist test 루프 → Stage 3 개입
+
+## WO 현황 (세션 14 종료)
+- done: WO-001 ~ 032 (32건)
+- backlog: 0건
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 256 (+6 E2E) | — | 256 |
+| ios | 149 (+25) | 42 | 191 |
+| android | 155 (+20) | 35 | 190 |
+| **합계** | **560** | **77** | **637** |
+
+## 다음 할 일
+### P1
+1. Password reset SMTP Phase 2
+2. 대화 그룹핑/스레드
+3. Daily digest
+
+### P2
+1. UI 테스트 실제 시뮬레이터 green 확인
+2. iOS tuist test 루프 근본 해결 (UI test runner crash 원인)
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 13 (프로필 수정 + 메모리 핀)
 
 ## 세션 13 요약 (WO-027/028/029 + api-contract v0.4)

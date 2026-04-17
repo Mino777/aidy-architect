@@ -233,6 +233,24 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - dailyAverage: totalMessages / (활동 일수). 소수점 1자리.
 - 메시지 0건이면 모든 숫자 0, 날짜 null.
 
+### GET /api/chat/summary (v0.9)
+최근 대화 AI 요약. 최근 24시간 대화를 요약하여 반환.
+
+```json
+// Response 200
+{
+  "period": "2026-04-17",
+  "messageCount": 12,
+  "summary": "오늘은 점심 지출 기록, 팀 미팅 일정 확인, 운동 계획을 대화했어요.",
+  "topics": ["금융", "일정", "건강"],
+  "memoriesCreated": 3
+}
+```
+- 최근 24시간 대화 기준
+- 대화 없으면: summary="대화 내역이 없습니다.", topics=[], memoriesCreated=0
+- AI를 호출하여 요약 생성 (비용 고려: 캐시 1시간)
+- Circuit Breaker OPEN 시 503 AI_UNAVAILABLE
+
 ### DELETE /api/chat/{id} (v0.3.1)
 채팅 메시지 개별 삭제. 사용자 본인 메시지 + 해당 AI 응답도 함께 삭제 (pair delete).
 
@@ -769,4 +787,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
 | v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
 | v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + Memory Insights (autoceo-s17-R3~R4) |
-| v0.9.0 | 2026-04-17 | Rate limit 헤더 + POST /api/memories/import (autoceo-s18-R2~R3) |
+| v0.9.0 | 2026-04-18 | Rate limit 헤더 + Memory import + Chat summary (autoceo-s18-R2~R4) |

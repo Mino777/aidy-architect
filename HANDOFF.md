@@ -1,3 +1,51 @@
+# Architect 핸드오프 — 2026-04-17 세션 11 (새 기능 + 프로세스 개선)
+
+## 세션 11 요약 (WO-021/022/023 + api-contract v0.3 + Stall Detection)
+
+**키워드**: 메모리 수정 + 채팅 검색 + Enter flush 패치 + 워커 Stall Detection 프로토콜
+
+**R1**: api-contract v0.3 — PUT /api/memories/{id} + GET /api/chat/history/search
+**R2**: WO-021 서버 구현 (235 tests, Enter flush 인시던트 → CLI 패치)
+**R3**: WO-022 iOS + WO-023 Android 2-way (iOS 테스트 루프 인시던트 → Stage 3 개입)
+**R4**: Gate 전원 PASS
+
+## 프로세스 개선 (s11 핵심)
+- **architect-cli.sh** Enter flush: 5회 재시도 + 실행 마커 감지 + 경고 출력
+- **Stall Detection 4단계**: 조기확인 → tmux진단 → 원격개입 → Architect직접수정
+- 문서: `docs/solutions/2026-04-17-worker-stall-detection-protocol.md`
+
+## WO 현황 (세션 11 종료)
+- done: WO-001 ~ 023 (23건)
+- backlog: 0건
+- in-progress: 없음
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 235 | — | 235 |
+| ios | 124 | 42 | 166 |
+| android | 135 | 35 | 170 |
+| **합계** | **494** | **77** | **571** |
+
+## 다음 세션 시작 전 체크
+1. **billing**: `gh api /repos/Mino777/aidy-server/actions/runs --jq '.workflow_runs[0] | {conclusion, created_at}'`
+2. **runners**: `gh api /repos/Mino777/aidy-{ios,server,android}/actions/runners --jq '.runners[] | {name,status,busy}'`
+3. **disk**: `df -h /`
+
+## 다음 할 일
+### P0
+1. WO-016 billing 정상 시나리오 검증
+
+### P1 — 새 기능
+1. Password reset SMTP Phase 2
+2. Multi-Provider Fallback (P-004 Phase 2)
+
+### P2 — 품질
+1. UI 테스트 실제 시뮬레이터/에뮬레이터 green 확인
+2. iOS SWIFT_STRICT_CONCURRENCY = complete
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 10 (Backlog 전량 소진)
 
 ## 세션 10 요약 (WO-011/013/020 + Backlog 0)

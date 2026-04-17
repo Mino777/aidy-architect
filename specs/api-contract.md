@@ -125,6 +125,30 @@ Body: 없음
 ]
 ```
 
+### GET /api/chat/history/search (v0.3)
+채팅 히스토리 키워드 검색. 사용자/AI 메시지 모두 대상.
+
+```json
+// Query: ?q=점심
+// Response 200
+[
+  {
+    "role": "user",
+    "content": "오늘 점심 12000원 썼어",
+    "createdAt": "2026-04-15T22:00:00Z"
+  },
+  {
+    "role": "assistant",
+    "content": "점심 비용 12,000원 기록했어요!",
+    "createdAt": "2026-04-15T22:00:01Z"
+  }
+]
+```
+- `q` 필수, 빈 문자열 → 400 VALIDATION_ERROR
+- content LIKE '%keyword%' (대소문자 무시)
+- 최대 50건 반환 (최신순)
+- 결과 형식은 GET /api/chat/history와 동일
+
 ---
 
 ## 3. Memory
@@ -173,6 +197,30 @@ Body: 없음
 // Response 200
 [ ...MemoryItem[] ]
 ```
+
+### PUT /api/memories/{id} (v0.3)
+메모리 수정. 사용자가 AI 추출 결과를 교정할 때 사용.
+
+```json
+// Request
+{
+  "title": "수정된 제목",
+  "content": "수정된 내용"
+}
+// Response 200
+{
+  "id": 42,
+  "category": "finance",
+  "title": "수정된 제목",
+  "content": "수정된 내용",
+  "createdAt": "2026-04-15T22:00:00Z"
+}
+// Error 400 VALIDATION_ERROR — title 또는 content 빈 문자열
+// Error 404 MEMORY_NOT_FOUND
+// Error 403 FORBIDDEN — 다른 사용자의 메모리
+```
+- title, content 둘 다 필수 (partial update 미지원, 클라가 기존값 채워서 전송)
+- category, createdAt 변경 불가
 
 ### DELETE /api/memories/{id}
 메모리 삭제
@@ -334,3 +382,4 @@ Body: 없음
 | v0.2.3 | 2026-04-16 | POST /api/auth/refresh — JWT 토큰 재발급 (autoceo-s5-R5) |
 | v0.2.4 | 2026-04-16 | GET /api/chat/history ?since 파라미터 추가 (autoceo-s6-R4) |
 | v0.2.5 | 2026-04-16 | POST /api/auth/password/reset/{request,confirm} (autoceo-s6-R5) |
+| v0.3.0 | 2026-04-17 | PUT /api/memories/{id} 메모리 수정 + GET /api/chat/history/search 채팅 검색 (autoceo-s11-R1) |

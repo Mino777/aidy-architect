@@ -100,20 +100,54 @@ tmux_send() {
     tmux paste-buffer -b "$buf_name" -t "$tmux_target"
     tmux delete-buffer -b "$buf_name" 2>/dev/null
 
-    # Enter flush — 최대 3회 재시도
+    # Enter flush — 최대 5회 재시도 + 실행 확인
     local attempt
-    for attempt in 1 2 3; do
+    local confirmed=0
+    for attempt in 1 2 3 4 5; do
         tmux send-keys -t "$tmux_target" C-m
-        sleep 0.4
-        # pane 마지막 줄에 실행 마커 (스피너/결과)가 나타나면 OK
+        sleep 1.5
+
+        # pane 캡처 — 실행 시작 여부 판별
         local tail
-        tail=$(tmux capture-pane -t "$tmux_target" -p | tail -3 | tr -d '\n')
+        tail=$(tmux capture-pane -t "$tmux_target" -p | tail -5 | tr -d '\n')
+
+        # 아직 paste/input 상태 — 재시도
         if [[ "$tail" == *"Pasted text"* || "$tail" == *"[Pasted"* ]]; then
-            # 아직 paste 상태 — 재시도
             continue
         fi
-        break
+
+        # 실행 확인: Claude CLI 실행 마커 감지 (스피너, 도구 호출, 진행 표시)
+        if [[ "$tail" == *"⠋"* || "$tail" == *"⠙"* || "$tail" == *"⠹"* || "$tail" == *"⠸"* || \
+              "$tail" == *"⠼"* || "$tail" == *"⠴"* || "$tail" == *"⠦"* || "$tail" == *"⠧"* || \
+              "$tail" == *"Reading"* || "$tail" == *"Searching"* || "$tail" == *"Running"* || \
+              "$tail" == *"Editing"* || "$tail" == *"Writing"* || \
+              "$tail" == *"⎿"* || "$tail" == *"Brewing"* || "$tail" == *"Ebbing"* ]]; then
+            confirmed=1
+            break
+        fi
+
+        # input 프롬프트(❯)에 텍스트가 남아있으면 아직 미제출 — 재시도
+        if [[ "$tail" == *"❯"*"읽"* || "$tail" == *"❯"*"CLAUDE"* || \
+              "$tail" == *"❯"*"작업"* || "$tail" == *"❯"*"커밋"* ]]; then
+            echo -e "${YELLOW}  [attempt $attempt/5] 프롬프트가 input에 남아있음 — Enter 재시도${NC}"
+            continue
+        fi
     done
+
+    # 최종 확인: 5초 후 한 번 더 체크
+    if [[ "$confirmed" == "0" ]]; then
+        sleep 5
+        local final_check
+        final_check=$(tmux capture-pane -t "$tmux_target" -p | tail -5 | tr -d '\n')
+        if [[ "$final_check" == *"esc to interrupt"* || "$final_check" == *"ctrl+t"* || \
+              "$final_check" == *"Reading"* || "$final_check" == *"Running"* || \
+              "$final_check" == *"Brewing"* || "$final_check" == *"Ebbing"* ]]; then
+            confirmed=1
+        else
+            echo -e "${RED}[경고] $target 실행 확인 실패 — tmux pane 수동 확인 필요${NC}"
+            echo -e "${YELLOW}  tmux capture: $(echo "$final_check" | tail -c 120)${NC}"
+        fi
+    fi
 
     # 429 / rate-limit 감지 + backoff (P3-8)
     # 환경변수로 제어:

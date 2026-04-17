@@ -367,6 +367,33 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - 페이지네이션 없음 (전체 export)
 - 파일명: `aidy-memories-{YYYY-MM-DD}.json`
 
+### POST /api/memories/import (v0.9)
+메모리 JSON 가져오기. export 포맷과 동일한 구조. 중복(동일 title+content+category) 건너뜀.
+
+```json
+// Request
+{
+  "memories": [
+    {
+      "category": "finance",
+      "title": "점심 지출",
+      "content": "12,000원 지출"
+    }
+  ]
+}
+// Response 200
+{
+  "imported": 20,
+  "skipped": 3,
+  "total": 23
+}
+// Error 400 VALIDATION_ERROR — memories 빈 배열 또는 category enum 미일치
+```
+- `id`, `createdAt` 필드는 무시 (서버에서 새로 생성)
+- 중복 판정: 동일 userId + title + content + category → skip
+- 최대 200건 (초과 시 400 VALIDATION_ERROR)
+- `pinned` 필드 있으면 반영, 없으면 false
+
 ### GET /api/memories/search
 키워드 검색
 
@@ -742,4 +769,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v0.6.0 | 2026-04-17 | GET /api/search 통합 검색 + PUT memories category 변경 허용 (autoceo-s16-R1) |
 | v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
 | v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + Memory Insights (autoceo-s17-R3~R4) |
-| v0.9.0 | 2026-04-17 | Rate limit 헤더 (X-RateLimit-*) + Retry-After (autoceo-s18-R2) |
+| v0.9.0 | 2026-04-17 | Rate limit 헤더 + POST /api/memories/import (autoceo-s18-R2~R3) |

@@ -170,6 +170,29 @@ npm run embed-content
 
 ---
 
+## Phase 6 — 워커 세션 재시작 (필수)
+
+Compound 완료 후 **모든 워커 세션을 종료하고 재시작**한다.
+CLAUDE.md, 스펙, 에이전트 파일이 변경되었을 수 있으므로 깨끗한 컨텍스트에서 다음 사이클을 시작해야 한다.
+
+```bash
+# 1. 워커 세션 종료
+./architect-cli.sh send server "/exit"
+./architect-cli.sh send ios "/exit"
+./architect-cli.sh send android "/exit"
+
+# 2. 3초 대기 후 재시작 (--dangerously-skip-permissions 필수)
+sleep 3
+for pane in 1 2 3; do
+  tmux send-keys -t aidy:0.$pane "claude --dangerously-skip-permissions" Enter
+done
+```
+
+- **/exit 필수** — /clear가 아니라 /exit. CLAUDE.md/settings 변경이 반영되려면 프로세스 재시작 필요.
+- 재시작 후 워커가 idle 상태인지 확인한 뒤 다음 작업 진행.
+
+---
+
 ## 안티패턴
 
 - ❌ "특이사항 없음"으로 회고 스킵 — 항상 최소 "다음에 적용할 것" 1개

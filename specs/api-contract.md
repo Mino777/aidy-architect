@@ -251,6 +251,26 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - AI를 호출하여 요약 생성 (비용 고려: 캐시 1시간)
 - Circuit Breaker OPEN 시 503 AI_UNAVAILABLE
 
+### GET /api/chat/quickactions (v1.0)
+퀵 액션 목록. 자주 쓰는 프롬프트를 카테고리별로 반환.
+
+```json
+// Response 200
+{
+  "actions": [
+    { "id": "daily_expense", "emoji": "💰", "label": "오늘 지출 기록", "prompt": "오늘 지출을 기록할게요" },
+    { "id": "schedule_check", "emoji": "📅", "label": "일정 확인", "prompt": "이번 주 일정 알려줘" },
+    { "id": "mood_log", "emoji": "😊", "label": "기분 기록", "prompt": "오늘 기분을 기록할게요" },
+    { "id": "work_memo", "emoji": "📝", "label": "업무 메모", "prompt": "업무 메모를 남길게요" },
+    { "id": "health_log", "emoji": "🏃", "label": "운동 기록", "prompt": "오늘 운동을 기록할게요" },
+    { "id": "people_note", "emoji": "👤", "label": "인물 메모", "prompt": "사람에 대해 기록할게요" }
+  ]
+}
+```
+- 서버에서 고정 목록 반환 (v1.0은 하드코딩, 추후 사용자 커스텀)
+- 클라이언트: 채팅 입력 위에 가로 스크롤 퀵 버튼
+- 탭 시 prompt 텍스트를 채팅 입력에 자동 채움 + 전송
+
 ### DELETE /api/chat/{id} (v0.3.1)
 채팅 메시지 개별 삭제. 사용자 본인 메시지 + 해당 AI 응답도 함께 삭제 (pair delete).
 

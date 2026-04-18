@@ -525,6 +525,30 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - GET /api/memories?pinned=true → 핀된 메모리만 필터
 - 핀된 메모리는 리스트 상단 고정 (클라이언트 정렬)
 
+### PATCH /api/memories/{id}/tags (v1.0)
+메모리에 커스텀 태그 추가/수정.
+
+```json
+// Request
+{ "tags": ["중요", "회의", "Q2"] }
+// Response 200
+{
+  "id": 42,
+  "category": "work",
+  "title": "팀 미팅",
+  "content": "...",
+  "tags": ["중요", "회의", "Q2"],
+  "pinned": false,
+  "createdAt": "2026-04-18T12:00:00Z"
+}
+// Error 400 VALIDATION_ERROR — 태그 10개 초과 또는 태그 길이 20자 초과
+// Error 404 MEMORY_NOT_FOUND
+```
+- 태그 최대 10개, 각 태그 1~20자
+- 빈 배열 전송 시 모든 태그 삭제
+- GET /api/memories 응답에 tags 필드 추가 (배열, default [])
+- GET /api/memories?tag=중요 → 해당 태그 가진 메모리 필터
+
 ### DELETE /api/memories/{id}
 메모리 삭제
 

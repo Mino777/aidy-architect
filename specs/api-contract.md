@@ -417,6 +417,65 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 - 동일 메시지에 재피드백 시 덮어쓰기 (upsert)
 - 추후 AI 품질 개선 데이터로 활용
 
+### GET /api/chat/topics (v1.5)
+대화 주제 자동 요약. AI가 최근 대화를 분석해 주제별로 클러스터링.
+
+```json
+// Query: ?days=7 (optional, default 7, max 30)
+// Response 200
+{
+  "days": 7,
+  "topics": [
+    {
+      "title": "업무 프로젝트 진행",
+      "messageCount": 15,
+      "firstMessageAt": "2026-04-15T09:00:00Z",
+      "lastMessageAt": "2026-04-19T14:00:00Z",
+      "keywords": ["프로젝트", "회의", "마감"],
+      "sampleMessageId": 42
+    }
+  ],
+  "totalMessages": 50
+}
+```
+- AI 기반 주제 추출 (서버 사이드 처리)
+- keywords: 주제를 대표하는 키워드 3개 이하
+- sampleMessageId: 해당 주제의 대표 메시지 ID (클라이언트에서 해당 위치로 스크롤 가능)
+- 캐싱 권장: 같은 days 파라미터로 1시간 이내 재요청 시 캐시 반환
+
+### GET /api/chat/export (v1.5)
+대화 이력 텍스트 내보내기. 날짜 범위 지정 가능.
+
+```json
+// Query: ?format=text&days=30 (optional)
+//   format: "text" | "json" (default "text")
+//   days: 최근 N일 (default 30, max 365)
+// Response 200 (format=text)
+// Content-Type: text/plain; charset=utf-8
+// Content-Disposition: attachment; filename="aidy-chat-export-2026-04-19.txt"
+//
+// [2026-04-19 10:00] 나: 오늘 점심 뭐 먹었어
+// [2026-04-19 10:00] Aidy: 점심 기록을 도와드릴게요! 뭘 드셨나요?
+
+// Response 200 (format=json)
+// Content-Type: application/json
+{
+  "exportedAt": "2026-04-19T12:00:00Z",
+  "days": 30,
+  "messageCount": 128,
+  "messages": [
+    {
+      "role": "user",
+      "content": "오늘 점심 뭐 먹었어",
+      "createdAt": "2026-04-19T10:00:00Z"
+    }
+  ]
+}
+```
+- text 포맷: 읽기 편한 타임스탬프 + role + content
+- json 포맷: 프로그래밍 친화적, 메시지 배열
+- 메시지 없으면 빈 텍스트/빈 배열 반환 (에러 아님)
+
 ### DELETE /api/chat/history (v0.8)
 전체 대화 삭제. 사용자의 모든 채팅 메시지 삭제.
 
@@ -1215,3 +1274,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.2.0 | 2026-04-19 | People list + merge + edit (autoceo-s22-R1) |
 | v1.3.0 | 2026-04-19 | Chat grouped history + User dashboard (autoceo-s22-R5) |
 | v1.4.0 | 2026-04-19 | Chat bookmarks + AI feedback (autoceo-s23-R1) |
+| v1.5.0 | 2026-04-19 | Chat topics + Chat export (autoceo-s23-R5) |

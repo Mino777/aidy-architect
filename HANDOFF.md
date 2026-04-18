@@ -1,3 +1,48 @@
+# Architect 핸드오프 — 2026-04-19 세션 22 (People 관리 + 대화 그룹핑 + 대시보드)
+
+## 세션 22 요약 (WO-051~056 + api-contract v1.3)
+
+**키워드**: People list/merge/edit + Chat grouped history + User dashboard + Gate-1 이행
+
+**R1**: api-contract v1.2 스펙 (People 관리 3 엔드포인트)
+**R2**: WO-051 서버 구현 (500 tests, +40)
+**R3**: WO-052 iOS + WO-053 Android 2-way (인시던트 0건)
+**R4**: Gate-1 전원 PASS (s21 retro 의무 이행)
+**R5**: api-contract v1.3 스펙 (Chat grouped + Dashboard)
+**R6**: WO-054 서버 구현 (514 tests, +14)
+**R7**: WO-055 iOS + WO-056 Android 2-way (iOS 빌드에러 자체수정)
+**R8**: 3-way 품질 개선 (보안+성능+접근성)
+**R9**: 3-way 테스트 보강 (server +23, ios +19, android +14)
+**R10**: Compound
+
+## WO 현황 (세션 22 종료)
+- done: WO-001 ~ 056 (56건)
+- backlog: 0건
+
+## 테스트 베이스라인
+| 프로젝트 | Unit | UI | 합계 |
+|---------|------|-----|------|
+| server | 542 | — | 542 |
+| ios | 367 | 42 | 409 |
+| android | 601 | 35 | 636 |
+| **합계** | **1510** | **77** | **1587** |
+
+## 다음 할 일
+### P1
+1. FCM/APNs 실제 push 발송 구현 (s21 인프라 기반)
+2. Chat context 비용 측정 (토큰 소비량 비교)
+
+### P2
+1. Password reset SMTP Phase 2 (외부 SMTP 서비스 필요)
+2. Multi-Provider Fallback (P-004 Phase 2, 2nd API key 필요)
+3. iOS xcodebuild 테스트 시간 최적화
+
+### P3
+1. People 자동 병합 제안 (유사 이름 감지)
+2. Memory 트렌드 분석 (주/월간)
+
+---
+
 # Architect 핸드오프 — 2026-04-17 세션 16 (통합 검색 + 카테고리 변경)
 
 ## 세션 16 요약 (WO-036/037/038 + api-contract v0.6)

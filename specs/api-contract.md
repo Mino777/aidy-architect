@@ -432,6 +432,40 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - 최대 200건 (초과 시 400 VALIDATION_ERROR)
 - `pinned` 필드 있으면 반영, 없으면 false
 
+### POST /api/memories/{id}/share (v1.0)
+메모리 공유 링크 생성. 24시간 유효한 공유 토큰 발급.
+
+```json
+// Response 200
+{
+  "shareToken": "abc123def456",
+  "expiresAt": "2026-04-19T01:00:00Z",
+  "shareUrl": "/api/shared/abc123def456"
+}
+// Error 404 MEMORY_NOT_FOUND
+// Error 403 FORBIDDEN
+```
+
+### GET /api/shared/{token} (v1.0)
+공유 토큰으로 메모리 조회. 인증 불필요 (공개 접근).
+
+```json
+// Response 200
+{
+  "category": "finance",
+  "title": "점심 지출",
+  "content": "12,000원 지출",
+  "sharedBy": "홍길동",
+  "createdAt": "2026-04-18T12:00:00Z"
+}
+// Error 404 — 토큰 만료/미존재
+{ "error": "공유 링크가 만료되었습니다.", "code": "SHARE_NOT_FOUND" }
+```
+- 토큰: 32자 URL-safe 랜덤
+- 유효기간: 24시간
+- 만료 후 자동 무효 (DB에서 삭제 불필요, 조회 시 체크)
+- 공유된 메모리에 userId 등 민감 정보 미포함
+
 ### GET /api/memories/search
 키워드 검색
 

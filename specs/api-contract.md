@@ -651,6 +651,46 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 
 ---
 
+## 5.4 Reminders (v1.0)
+
+### GET /api/reminders
+일정/알림 목록. schedule 카테고리 메모리 중 날짜가 오늘 이후인 항목.
+
+```json
+// Response 200
+{
+  "reminders": [
+    {
+      "memoryId": 55,
+      "title": "팀 미팅",
+      "content": "4/20 오후 2시 회의실 A",
+      "date": "2026-04-20",
+      "daysUntil": 2,
+      "pinned": true
+    }
+  ],
+  "todayCount": 1,
+  "upcomingCount": 3
+}
+```
+- schedule 카테고리 + content에서 날짜 추출 (YYYY-MM-DD 패턴)
+- 날짜 추출 실패한 메모리는 제외
+- 가까운 날짜 먼저 정렬
+- daysUntil: 0=오늘, 1=내일, ...
+- 지난 날짜는 제외
+
+### POST /api/reminders/{memoryId}/dismiss (v1.0)
+알림 해제 (다시 표시 안 함).
+
+```json
+// Response 204
+// Error 404 MEMORY_NOT_FOUND
+```
+- 내부적으로 메모리에 dismissed 플래그 설정
+- dismissed된 메모리는 GET /api/reminders에서 제외
+
+---
+
 ## 5.5 Memory Timeline (v1.0)
 
 ### GET /api/memories/timeline

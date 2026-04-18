@@ -129,9 +129,9 @@ Architect                          Worker
 
 | 항목 | 값 |
 |------|-----|
-| API 버전 | v1.3.0 |
-| 완료된 WO | 56개 |
+| API 버전 | v1.5.0 |
+| 완료된 WO | 62개 |
 | 진행 중 WO | 0개 |
-| ADR | 10개 (001~010) + BACKLOG |
+| ADR | 11개 (001~011) + BACKLOG |
 | 워커 | 3개 (server, ios, android) |
 | 슬래시 커맨드 | 10개 |

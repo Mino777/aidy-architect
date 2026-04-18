@@ -1,5 +1,16 @@
 # Aidy Architect — 풀스택 관제 센터
 
+## 허브 디스패치 확인 (세션 시작 필수)
+세션 시작 시 ai-study 허브에서 할당된 태스크가 있는지 확인:
+```bash
+gh issue list --label hub-dispatch --state open --json number,title --jq '.[] | "#\(.number) \(.title)"'
+```
+`hub-dispatch` 이슈가 있으면 유저에게 보고하고, 작업 큐에 포함할지 확인.
+aidy-server/aidy-ios/aidy-android 이슈도 함께 확인:
+```bash
+for repo in aidy-server aidy-ios aidy-android; do echo "=== $repo ==="; gh issue list --repo Mino777/$repo --label hub-dispatch --state open --json number,title --jq '.[] | "#\(.number) \(.title)"' 2>/dev/null; done
+```
+
 > **이 세션은 설계자(Architect)다.** 코드를 직접 작성하지 않는다.
 > 아키텍처를 결정하고, API 스펙을 정의하고, 작업을 분배하고, 결과를 검증한다.
 

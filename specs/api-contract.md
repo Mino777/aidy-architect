@@ -815,12 +815,40 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 
 ---
 
-## 7. Health
+## 7. App Config (v1.0)
+
+### GET /api/app/config
+앱 설정. 인증 불필요. 최소 버전, 공지, 기능 플래그.
+
+```json
+// Response 200
+{
+  "minVersion": "1.0.0",
+  "latestVersion": "1.0.0",
+  "forceUpdate": false,
+  "announcement": null,
+  "features": {
+    "quickActions": true,
+    "memoryShare": true,
+    "chatSummary": true,
+    "reminders": true
+  }
+}
+```
+- `minVersion`: 이 버전 미만이면 강제 업데이트 (클라이언트 비교)
+- `forceUpdate`: true면 앱 사용 차단 + 업데이트 안내
+- `announcement`: 공지 메시지 (null이면 미표시)
+- `features`: 기능 플래그 (false면 해당 기능 UI 숨김)
+- 서버 하드코딩 (v1.0), 추후 관리 패널
+
+---
+
+## 8. Health
 
 ### GET /api/health
 ```json
 // Response 200
-{ "status": "ok", "service": "aidy-server", "version": "0.1.0" }
+{ "status": "ok", "service": "aidy-server", "version": "1.0.0" }
 ```
 
 ---

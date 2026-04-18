@@ -285,6 +285,79 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - assistant 메시지 단독 삭제: 해당 메시지만 삭제
 - 삭제된 메시지에서 추출된 메모리는 유지 (메모리는 독립 엔티티)
 
+### GET /api/chat/history/grouped (v1.3)
+날짜별 채팅 그룹핑. 대화를 날짜 기준으로 그룹핑하여 반환.
+
+```json
+// Query: ?days=7 (optional, default 7, max 30)
+// Response 200
+{
+  "days": 7,
+  "groups": [
+    {
+      "date": "2026-04-19",
+      "messageCount": 12,
+      "firstMessage": "오늘 점심 뭐 먹지",
+      "lastMessage": "운동 기록 남길게",
+      "topics": ["금융", "건강"],
+      "memoriesCreated": 3
+    },
+    {
+      "date": "2026-04-18",
+      "messageCount": 8,
+      "firstMessage": "팀 미팅 언제야",
+      "lastMessage": "내일 일정 알려줘",
+      "topics": ["일정", "업무"],
+      "memoriesCreated": 2
+    }
+  ],
+  "totalMessages": 20,
+  "totalDays": 2
+}
+```
+- 최신 날짜 먼저 (내림차순)
+- 대화 없는 날짜는 생략
+- topics: 해당 날짜에 생성된 메모리의 카테고리 unique 목록
+- firstMessage/lastMessage: 해당 날짜 첫/마지막 user 메시지 content (50자 초과 시 truncate + "...")
+- days=0 또는 음수 → 400 VALIDATION_ERROR
+
+### GET /api/user/dashboard (v1.3)
+종합 사용 통계 대시보드. 채팅, 메모리, 인물 통계 통합.
+
+```json
+// Response 200
+{
+  "chat": {
+    "totalMessages": 128,
+    "todayMessages": 12,
+    "weeklyMessages": 45,
+    "dailyAverage": 21.3
+  },
+  "memory": {
+    "totalMemories": 47,
+    "pinnedCount": 5,
+    "todayCreated": 3,
+    "topCategory": "finance",
+    "streakDays": 7
+  },
+  "people": {
+    "totalPeople": 8,
+    "totalTraits": 23,
+    "mostMentioned": "김팀장"
+  },
+  "activity": {
+    "memberSince": "2026-04-15T10:00:00Z",
+    "totalActiveDays": 5,
+    "lastActiveAt": "2026-04-19T14:00:00Z"
+  }
+}
+```
+- todayMessages/todayCreated: UTC 기준 오늘
+- weeklyMessages: 최근 7일
+- mostMentioned: PersonMemory count 최대 인물 (없으면 null)
+- memberSince: 첫 메시지 시각 (메시지 없으면 계정 생성일)
+- totalActiveDays: 1건 이상 메시지가 있는 고유 날짜 수
+
 ### DELETE /api/chat/history (v0.8)
 전체 대화 삭제. 사용자의 모든 채팅 메시지 삭제.
 
@@ -1081,3 +1154,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.0.0 | 2026-04-18 | Memory timeline + Quick actions + 공유 + 알림 + App config + Tags (autoceo-s19) |
 | v1.1.0 | 2026-04-18 | Notification token 등록/해제 (autoceo-s21-R4) |
 | v1.2.0 | 2026-04-19 | People list + merge + edit (autoceo-s22-R1) |
+| v1.3.0 | 2026-04-19 | Chat grouped history + User dashboard (autoceo-s22-R5) |

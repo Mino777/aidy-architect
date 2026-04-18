@@ -358,6 +358,65 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 - memberSince: 첫 메시지 시각 (메시지 없으면 계정 생성일)
 - totalActiveDays: 1건 이상 메시지가 있는 고유 날짜 수
 
+### POST /api/chat/{id}/bookmark (v1.4)
+채팅 메시지 북마크 토글. 이미 북마크된 경우 해제, 없으면 추가.
+
+```json
+// Response 200 (북마크 추가)
+{ "bookmarked": true, "bookmarkedAt": "2026-04-19T12:00:00Z" }
+// Response 200 (북마크 해제)
+{ "bookmarked": false }
+// Error 404
+{ "error": "메시지를 찾을 수 없습니다.", "code": "MESSAGE_NOT_FOUND" }
+// Error 403
+{ "error": "권한이 없습니다.", "code": "FORBIDDEN" }
+```
+- 토글 방식: 한 엔드포인트로 추가/해제 모두 처리
+- user/assistant 메시지 모두 북마크 가능
+- 삭제된 메시지의 북마크는 cascade 삭제
+
+### GET /api/chat/bookmarks (v1.4)
+북마크된 메시지 목록 조회. 최신 북마크순.
+
+```json
+// Query: ?offset=0&limit=20 (optional)
+// Response 200
+{
+  "bookmarks": [
+    {
+      "id": 42,
+      "role": "assistant",
+      "content": "오늘 하루도 수고하셨어요!",
+      "createdAt": "2026-04-19T10:00:00Z",
+      "bookmarkedAt": "2026-04-19T12:00:00Z"
+    }
+  ],
+  "total": 5,
+  "offset": 0,
+  "limit": 20
+}
+```
+- 페이지네이션: offset/limit (기본 limit=20)
+- 정렬: bookmarkedAt DESC
+
+### POST /api/chat/{id}/feedback (v1.4)
+AI 응답에 대한 피드백. assistant 메시지에만 허용.
+
+```json
+// Request
+{ "rating": "good" }  // "good" | "bad"
+// Response 200
+{ "id": 42, "rating": "good", "createdAt": "2026-04-19T12:00:00Z" }
+// Error 400
+{ "error": "AI 응답에만 피드백할 수 있습니다.", "code": "VALIDATION_ERROR" }
+// Error 404
+{ "error": "메시지를 찾을 수 없습니다.", "code": "MESSAGE_NOT_FOUND" }
+```
+- rating: "good" | "bad" (enum, 필수)
+- assistant role 메시지만 피드백 가능
+- 동일 메시지에 재피드백 시 덮어쓰기 (upsert)
+- 추후 AI 품질 개선 데이터로 활용
+
 ### DELETE /api/chat/history (v0.8)
 전체 대화 삭제. 사용자의 모든 채팅 메시지 삭제.
 
@@ -1155,3 +1214,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.1.0 | 2026-04-18 | Notification token 등록/해제 (autoceo-s21-R4) |
 | v1.2.0 | 2026-04-19 | People list + merge + edit (autoceo-s22-R1) |
 | v1.3.0 | 2026-04-19 | Chat grouped history + User dashboard (autoceo-s22-R5) |
+| v1.4.0 | 2026-04-19 | Chat bookmarks + AI feedback (autoceo-s23-R1) |

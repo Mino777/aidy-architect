@@ -867,7 +867,39 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 
 ---
 
-## 8. Health
+## 8. Notification (v1.1)
+
+### POST /api/notifications/token
+푸시 알림 토큰 등록/갱신. 디바이스별 FCM/APNs 토큰 저장.
+
+```json
+// Request
+{
+  "token": "fcm-or-apns-token-string",
+  "platform": "ios",
+  "deviceId": "device-uuid"
+}
+// Response 200
+{ "status": "registered" }
+// Error 400 VALIDATION_ERROR — token/platform 누락
+```
+- platform: "ios" | "android"
+- deviceId: 디바이스 고유 ID (중복 등록 방지)
+- 같은 deviceId로 재등록 시 토큰 업데이트 (UPSERT)
+- 로그아웃/계정삭제 시 토큰 자동 삭제
+
+### DELETE /api/notifications/token
+토큰 해제 (로그아웃 시).
+
+```json
+// Request
+{ "deviceId": "device-uuid" }
+// Response 204
+```
+
+---
+
+## 9. Health
 
 ### GET /api/health
 ```json
@@ -969,3 +1001,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + Memory Insights (autoceo-s17-R3~R4) |
 | v0.9.0 | 2026-04-18 | Rate limit 헤더 + Memory import + Chat summary (autoceo-s18-R2~R4) |
 | v1.0.0 | 2026-04-18 | Memory timeline + Quick actions + 공유 + 알림 + App config + Tags (autoceo-s19) |
+| v1.1.0 | 2026-04-18 | Notification token 등록/해제 (autoceo-s21-R4) |

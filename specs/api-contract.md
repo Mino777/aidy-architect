@@ -609,6 +609,84 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 { "error": "해당 인물의 기억을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
 ```
 
+### GET /api/memories/people/list (v1.2)
+전체 인물 목록. 사용자가 대화에서 언급한 모든 인물과 메모리 수.
+
+```json
+// Response 200
+{
+  "people": [
+    {
+      "id": 1,
+      "normalizedName": "김팀장",
+      "displayName": "김 팀장",
+      "relationship": "직장 상사",
+      "memoryCount": 5,
+      "latestTrait": "스타벅스 선호",
+      "lastMentionedAt": "2026-04-18T14:00:00Z"
+    }
+  ],
+  "totalCount": 3
+}
+```
+- 최근 언급순 정렬 (lastMentionedAt 내림차순)
+- memoryCount: 해당 인물의 PersonMemory 수
+- latestTrait: 가장 최근 PersonMemory의 trait
+- lastMentionedAt: 가장 최근 PersonMemory의 createdAt
+
+### POST /api/memories/people/merge (v1.2)
+인물 병합. source 인물의 모든 메모리를 target으로 이동 후 source 삭제.
+
+```json
+// Request
+{
+  "sourcePersonId": 2,
+  "targetPersonId": 1
+}
+// Response 200
+{
+  "mergedCount": 3,
+  "target": {
+    "id": 1,
+    "normalizedName": "김팀장",
+    "displayName": "김 팀장",
+    "relationship": "직장 상사",
+    "memoryCount": 8
+  }
+}
+// Error 400 VALIDATION_ERROR — sourcePersonId == targetPersonId
+// Error 404 PERSON_NOT_FOUND — source 또는 target 미존재
+// Error 403 FORBIDDEN — 다른 사용자의 인물
+```
+- source의 PersonMemory.person → target으로 변경
+- source Person 삭제
+- target의 displayName/relationship은 유지
+- 동일 trait 중복 시 source 쪽 PersonMemory 삭제
+
+### PATCH /api/memories/people/{id} (v1.2)
+인물 정보 수정. relationship, displayName 변경.
+
+```json
+// Request
+{
+  "relationship": "친한 친구",
+  "displayName": "김철수 팀장"
+}
+// Response 200
+{
+  "id": 1,
+  "normalizedName": "김팀장",
+  "displayName": "김철수 팀장",
+  "relationship": "친한 친구",
+  "memoryCount": 8
+}
+// Error 404 PERSON_NOT_FOUND
+// Error 403 FORBIDDEN
+// Error 400 VALIDATION_ERROR — relationship/displayName 빈 문자열
+```
+- relationship, displayName 중 하나만 전달해도 됨 (partial update)
+- normalizedName은 변경 불가
+
 ### POST /api/memories/{id}/feedback
 기억 정확도 피드백
 
@@ -1002,3 +1080,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v0.9.0 | 2026-04-18 | Rate limit 헤더 + Memory import + Chat summary (autoceo-s18-R2~R4) |
 | v1.0.0 | 2026-04-18 | Memory timeline + Quick actions + 공유 + 알림 + App config + Tags (autoceo-s19) |
 | v1.1.0 | 2026-04-18 | Notification token 등록/해제 (autoceo-s21-R4) |
+| v1.2.0 | 2026-04-19 | People list + merge + edit (autoceo-s22-R1) |

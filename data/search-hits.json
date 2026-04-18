@@ -1,11 +1,21 @@
 {
-  "totalQueries": 2,
-  "lastUpdated": "2026-04-17T10:17:52.517Z",
+  "totalQueries": 12,
+  "lastUpdated": "2026-04-18T02:36:16.481Z",
   "hits": {
-    "docs/solutions/2026-04-17-worker-stall-detection-protocol": 1,
-    "HANDOFF": 1,
-    "docs/retros/session-compound-s9-s11": 1,
-    "CLAUDE": 1,
-    "SYSTEM-GUIDE": 1
+    "docs/solutions/2026-04-17-worker-stall-detection-protocol": 3,
+    "HANDOFF": 2,
+    "docs/retros/session-compound-s9-s11": 2,
+    "CLAUDE": 4,
+    "SYSTEM-GUIDE": 3,
+    "docs/retros/s8-WO-012-016-compound-retro": 1,
+    "CHANGELOG": 1,
+    "docs/retros/autoceo-s11-round-retro": 1,
+    "docs/worker-prompts/2026-04-17": 2,
+    "docs/worker-prompts/autoceo-s6-backfill": 1,
+    "docs/retros/autoceo-s6-round-8-retro": 1,
+    "docs/retros/autoceo-s5-round-7-retro": 1,
+    "docs/retros/round-2-retro": 1,
+    "docs/worker-prompts/README": 1,
+    "docs/retros/autoceo-s4-round-10-retro": 1
   }
 }

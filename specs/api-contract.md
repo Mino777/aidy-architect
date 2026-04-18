@@ -597,7 +597,41 @@ data: {"code": "AI_TIMEOUT", "error": "AI 응답 시간 초과"}
 
 ---
 
-## 5.5 Memory Insights (v0.8)
+## 5.5 Memory Timeline (v1.0)
+
+### GET /api/memories/timeline
+날짜별 메모리 타임라인. 메모리를 날짜 기준으로 그룹핑하여 반환.
+
+```json
+// Query: ?days=7 (optional, default 7, max 30)
+// Response 200
+{
+  "days": 7,
+  "timeline": [
+    {
+      "date": "2026-04-18",
+      "count": 5,
+      "memories": [
+        { "id": 50, "category": "finance", "title": "점심 지출", "content": "12,000원", "pinned": false, "createdAt": "2026-04-18T12:00:00Z" }
+      ]
+    },
+    {
+      "date": "2026-04-17",
+      "count": 3,
+      "memories": [...]
+    }
+  ],
+  "totalCount": 8
+}
+```
+- 최신 날짜 먼저 (내림차순)
+- 각 날짜 내 메모리는 최신순
+- 메모리 없는 날짜는 생략
+- days=0 또는 음수 → 400 VALIDATION_ERROR
+
+---
+
+## 5.6 Memory Insights (v0.8)
 
 ### GET /api/memories/insights
 메모리 활동 인사이트. 카테고리별 분포 + 최근 7일 활동 추이.
@@ -788,3 +822,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v0.7.0 | 2026-04-17 | GET/PUT /api/settings + PUT /api/auth/password + DELETE /api/auth/account (autoceo-s17-R1~R2) |
 | v0.8.0 | 2026-04-17 | Chat pagination + 전체 삭제 + Memory Insights (autoceo-s17-R3~R4) |
 | v0.9.0 | 2026-04-18 | Rate limit 헤더 + Memory import + Chat summary (autoceo-s18-R2~R4) |
+| v1.0.0 | 2026-04-18 | Memory timeline + Quick actions + 공유 + 알림 + App config + Tags (autoceo-s19) |

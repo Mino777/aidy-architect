@@ -310,6 +310,7 @@ build_prompt() {
 5. ~/Develop/aidy-architect/gates/test-policy.md + gates/test-policy-${target}.md
 
 work-order의 '구현 요구사항'을 하나씩 구현하고, 완료되면 git commit해줘. 커밋 메시지는 한글로.
+목업이 있으면 (work-order의 **목업**: 필드) 해당 경로의 이미지를 참조하여 UI를 구현해.
 
 ⚠️ 테스트 실행 증거 필수 (autoceo-s4 교훈):
 - 커밋 전 반드시 실제 테스트 실행하고 숫자 보고:

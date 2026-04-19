@@ -485,6 +485,87 @@ verify() {
     return $failed
 }
 
+# ─── 워커 재시작 (compound Phase 6용) ───
+
+restart_workers() {
+    echo -e "${GREEN}[워커 재시작]${NC} 3개 워커 종료 + 재시작..."
+
+    local workers=("server" "ios" "android")
+    local panes=(1 2 3)
+
+    # 1단계: 각 워커에 /exit 전송 (Claude가 실행 중인 경우만)
+    for i in 0 1 2; do
+        local pane=${panes[$i]}
+        local worker=${workers[$i]}
+        local tmux_target="$TMUX_SESSION:0.${pane}"
+
+        # pane에 Claude가 돌고 있는지 확인 (프롬프트에 ❯ 또는 bypass 표시)
+        local pane_content
+        pane_content=$(tmux capture-pane -t "$tmux_target" -p 2>/dev/null | tail -5)
+
+        if echo "$pane_content" | grep -qE "❯|bypass|esc to interrupt"; then
+            echo -e "  ${CYAN}[$worker]${NC} Claude 실행 중 → /exit 전송"
+            tmux send-keys -t "$tmux_target" "/exit" Enter
+        else
+            echo -e "  ${YELLOW}[$worker]${NC} Claude 미실행 (shell 상태)"
+        fi
+    done
+
+    # 2단계: 모든 Claude 프로세스 종료 대기 (최대 10초)
+    echo -e "  ${CYAN}종료 대기 중...${NC}"
+    local wait_count=0
+    while [ $wait_count -lt 10 ]; do
+        local all_exited=true
+        for pane in "${panes[@]}"; do
+            local tmux_target="$TMUX_SESSION:0.${pane}"
+            local content
+            content=$(tmux capture-pane -t "$tmux_target" -p 2>/dev/null | tail -3)
+            # shell 프롬프트 (% 또는 $)가 보이면 종료된 것
+            if ! echo "$content" | grep -qE "^[a-z].*[%\$] *$"; then
+                all_exited=false
+            fi
+        done
+        if $all_exited; then
+            break
+        fi
+        sleep 1
+        wait_count=$((wait_count + 1))
+    done
+    echo -e "  ${GREEN}종료 확인 (${wait_count}초)${NC}"
+
+    # 3단계: 재시작
+    for i in 0 1 2; do
+        local pane=${panes[$i]}
+        local worker=${workers[$i]}
+        local tmux_target="$TMUX_SESSION:0.${pane}"
+
+        # 혹시 남은 텍스트 정리
+        tmux send-keys -t "$tmux_target" C-c 2>/dev/null || true
+        sleep 0.5
+        tmux send-keys -t "$tmux_target" "claude --dangerously-skip-permissions" Enter
+        echo -e "  ${GREEN}[$worker]${NC} Claude 재시작됨"
+    done
+
+    # 4단계: 시작 확인 (최대 15초)
+    echo -e "  ${CYAN}시작 확인 중...${NC}"
+    sleep 10
+    local ok_count=0
+    for i in 0 1 2; do
+        local pane=${panes[$i]}
+        local worker=${workers[$i]}
+        local tmux_target="$TMUX_SESSION:0.${pane}"
+        local content
+        content=$(tmux capture-pane -t "$tmux_target" -p 2>/dev/null | tail -5)
+        if echo "$content" | grep -qE "❯|bypass"; then
+            echo -e "  ${GREEN}[$worker]${NC} ✅ ready"
+            ok_count=$((ok_count + 1))
+        else
+            echo -e "  ${YELLOW}[$worker]${NC} ⚠️ 시작 미확인 — 수동 확인 필요"
+        fi
+    done
+    echo -e "${GREEN}[완료]${NC} $ok_count/3 워커 재시작됨"
+}
+
 # ─── 메인 라우터 ───
 
 case "${1:-help}" in
@@ -496,6 +577,7 @@ case "${1:-help}" in
     run-all)     cli_run_all ;;
     preflight)   preflight ;;
     verify)      verify "${2:-all}" ;;
+    restart-workers) restart_workers ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
     status)

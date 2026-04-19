@@ -188,20 +188,12 @@ Compound 완료 후 **모든 워커 세션을 종료하고 재시작**한다.
 CLAUDE.md, 스펙, 에이전트 파일이 변경되었을 수 있으므로 깨끗한 컨텍스트에서 다음 사이클을 시작해야 한다.
 
 ```bash
-# 1. 워커 세션 종료
-./architect-cli.sh send server "/exit"
-./architect-cli.sh send ios "/exit"
-./architect-cli.sh send android "/exit"
-
-# 2. 3초 대기 후 재시작 (--dangerously-skip-permissions 필수)
-sleep 3
-for pane in 1 2 3; do
-  tmux send-keys -t aidy:0.$pane "claude --dangerously-skip-permissions" Enter
-done
+# 한 줄로 실행 — 종료 대기 + 재시작 + 시작 확인까지 자동
+./architect-cli.sh restart-workers
 ```
 
-- **/exit 필수** — /clear가 아니라 /exit. CLAUDE.md/settings 변경이 반영되려면 프로세스 재시작 필요.
-- 재시작 후 워커가 idle 상태인지 확인한 뒤 다음 작업 진행.
+- 내부적으로: Claude 실행 여부 확인 → /exit 전송 → shell 복귀 대기(최대 10초) → claude 재시작 → ready 확인(최대 15초)
+- 수동으로 send "/exit" + sleep + send-keys 하지 않는다 (s26 교훈: 타이밍 이슈로 빈 shell 발생).
 
 ---
 

@@ -1058,6 +1058,112 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 
 ---
 
+## 5.7 Memory Smart Review (v1.6)
+
+### GET /api/memories/review-suggestions
+오래되거나 변경 가능성이 높은 메모리를 리뷰 대상으로 추천. AI가 메모리 내용과 나이를 분석하여 리뷰 우선순위를 결정.
+
+```json
+// Query: ?limit=5 (optional, default 5, max 20)
+// Response 200
+{
+  "suggestions": [
+    {
+      "memoryId": 15,
+      "category": "work",
+      "title": "프로젝트 마감일 4월 30일",
+      "content": "이번 분기 마감일이 4월 30일이다",
+      "createdAt": "2026-01-15T10:00:00Z",
+      "daysSinceCreated": 94,
+      "reason": "3개월 전 기록된 업무 메모리입니다. 마감일이 지났을 수 있습니다.",
+      "priority": "high"
+    },
+    {
+      "memoryId": 22,
+      "category": "health",
+      "title": "주 3회 운동 목표",
+      "content": "주 3회 헬스장 가기로 함",
+      "createdAt": "2026-02-10T08:00:00Z",
+      "daysSinceCreated": 68,
+      "reason": "2개월 전 건강 목표입니다. 아직 유효한지 확인해보세요.",
+      "priority": "medium"
+    }
+  ],
+  "totalReviewable": 12
+}
+```
+- priority: "high" | "medium" | "low" (AI 결정)
+- reason: 리뷰를 추천하는 이유 (한국어, 1~2문장)
+- 기준: 30일 이상 된 메모리 중 일정/업무/건강 카테고리 우선
+- dismissed된 메모리와 핀 고정된 메모리는 제외
+- AI가 내용을 분석해 시간에 민감한 정보(날짜, 목표, 약속)를 우선 추천
+
+### POST /api/memories/{id}/review (v1.6)
+메모리 리뷰 결과 기록. 유효/수정/삭제 중 택일.
+
+```json
+// Request
+{ "action": "confirm" }  // "confirm" | "update" | "delete"
+// Response 200 (confirm — 메모리 유지, reviewedAt 갱신)
+{ "memoryId": 15, "action": "confirm", "reviewedAt": "2026-04-19T12:00:00Z" }
+// Response 200 (delete — 메모리 삭제됨)
+{ "memoryId": 15, "action": "delete", "deleted": true }
+// Error 404 MEMORY_NOT_FOUND
+```
+- confirm: 메모리의 reviewedAt 필드를 현재 시간으로 갱신 (다음 리뷰 대상에서 제외)
+- update: reviewedAt 갱신 (내용 수정은 PUT /api/memories/{id}로 별도)
+- delete: 메모리 삭제
+
+---
+
+## 5.8 Chat Sentiment (v1.7)
+
+### GET /api/chat/sentiment (v1.7)
+대화 감정 분석. AI가 최근 대화를 분석해 감정 추이와 주요 감정 패턴을 반환.
+
+```json
+// Query: ?days=7 (optional, default 7, max 30)
+// Response 200
+{
+  "days": 7,
+  "overall": "positive",
+  "score": 0.72,
+  "daily": [
+    {
+      "date": "2026-04-19",
+      "sentiment": "positive",
+      "score": 0.85,
+      "messageCount": 12,
+      "dominantEmotion": "joy"
+    },
+    {
+      "date": "2026-04-18",
+      "sentiment": "neutral",
+      "score": 0.52,
+      "messageCount": 8,
+      "dominantEmotion": "calm"
+    }
+  ],
+  "emotions": [
+    { "emotion": "joy", "count": 15, "percentage": 37.5 },
+    { "emotion": "calm", "count": 10, "percentage": 25.0 },
+    { "emotion": "stress", "count": 8, "percentage": 20.0 },
+    { "emotion": "sadness", "count": 4, "percentage": 10.0 },
+    { "emotion": "anger", "count": 3, "percentage": 7.5 }
+  ],
+  "totalMessages": 40
+}
+```
+- overall: "positive" | "neutral" | "negative" (AI 분석)
+- score: 0.0 (매우 부정) ~ 1.0 (매우 긍정)
+- daily: 날짜별 감정 추이 (최신순)
+- emotions: 감정 분포 (count 내림차순). 5대 감정: joy, calm, stress, sadness, anger
+- dominantEmotion: 해당 날짜의 가장 빈번한 감정
+- 캐싱 권장: 같은 days 파라미터로 1시간 이내 재요청 시 캐시 반환
+- 메시지 없으면: overall="neutral", score=0.5, 빈 배열들
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -1275,3 +1381,5 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.3.0 | 2026-04-19 | Chat grouped history + User dashboard (autoceo-s22-R5) |
 | v1.4.0 | 2026-04-19 | Chat bookmarks + AI feedback (autoceo-s23-R1) |
 | v1.5.0 | 2026-04-19 | Chat topics + Chat export (autoceo-s23-R5) |
+| v1.6.0 | 2026-04-19 | Memory smart review suggestions (autoceo-s24-R1) |
+| v1.7.0 | 2026-04-19 | Chat sentiment tracking (autoceo-s24-R1) |

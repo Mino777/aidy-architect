@@ -1,3 +1,61 @@
+# Architect 핸드오프 — 2026-04-19 세션 24 (v1.6~v1.9 — 4개 버전 릴리스)
+
+## 세션 24 요약 (WO-064~075, autoceo 10라운드)
+
+**키워드**: Memory Smart Review + Chat Sentiment + Weekly Summary + Memory Connections
+
+**R1**: Android Memory Review v1.6 (WO-065) + iOS WO-064 done 이동
+**R2**: iOS/Android Sentiment v1.7 (WO-067/068) — 1-way 순차 (Swap 91%)
+**R3**: Gate-1 Sentiment 전원 PASS + 빌드 검증 + WO-069 (Design 워크플로)
+**R4**: Server Weekly Summary v1.8 (WO-070)
+**R5**: iOS/Android Weekly Summary v1.8 (WO-071/072) — 1-way 순차
+**R6**: Gate-1 Weekly Summary 전원 PASS + 빌드 검증
+**R7**: Server Memory Connections v1.9 (WO-073)
+**R8**: iOS/Android Memory Connections v1.9 (WO-074/075) — 1-way 순차
+**R9**: Gate-1 Connections 전원 PASS + 빌드 검증 (server 655t, android 532t)
+**R10**: Compound
+
+## WO 현황 (세션 24 종료)
+- done: WO-001 ~ 075 (75건)
+- backlog: 0건
+- in-progress: 0건
+
+## 테스트 베이스라인
+| 프로젝트 | 테스트 수 | 변화 |
+|---------|----------|------|
+| server | 655 | +113 |
+| ios | 447 | +38 |
+| android | 532 | -104 (리팩토링) |
+| **합계** | **1,634** | **+47** |
+
+## API 버전 현황
+- v1.6: Memory Smart Review (GET review-suggestions, POST review)
+- v1.7: Chat Sentiment (GET sentiment)
+- v1.8: Weekly Summary (GET summary/weekly)
+- v1.9: Memory Connections (GET/POST/DELETE connections)
+
+## 아키텍처 변경
+- `memory_connections` 테이블 추가 (Flyway V23)
+- 양방향 연결 + 낙관적 삭제 패턴
+- Weekly Summary 6시간 캐시
+
+## 다음 할 일
+### P1
+1. v2.0 기획 — BACKLOG P-004 Phase 2 (Multi-Provider Fallback) 또는 P-006 (Multi-Agent Pipeline)
+2. iOS verify 자동화 (`architect-cli.sh verify ios` 축약 빌드)
+3. FCM/APNs 실제 push 발송
+
+### P2
+1. Password reset SMTP Phase 2 (외부 SMTP 서비스 필요)
+2. People 자동 병합 제안 (유사 이름 감지)
+3. iOS xcodebuild 테스트 시간 최적화
+
+### P3
+1. Memory 트렌드 분석 (월간)
+2. Chat context 비용 측정
+
+---
+
 # Architect 핸드오프 — 2026-04-19 세션 22 (People 관리 + 대화 그룹핑 + 대시보드)
 
 ## 세션 22 요약 (WO-051~056 + api-contract v1.3)

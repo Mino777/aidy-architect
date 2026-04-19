@@ -1275,6 +1275,149 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 
 ---
 
+## 5.11 Relationship Health Score (v2.0)
+
+### GET /api/people/{personId}/health (v2.0)
+인물별 관계 건강 점수. AI가 감정 추이, 상호작용 빈도, 메모리 다양성을 분석하여 관계 건강도를 산출.
+
+```json
+// Response 200
+{
+  "personId": 1,
+  "personName": "김팀장",
+  "healthScore": 78,
+  "grade": "good",
+  "factors": {
+    "interactionFrequency": {
+      "score": 85,
+      "label": "활발",
+      "detail": "최근 30일간 12회 언급"
+    },
+    "sentimentTrend": {
+      "score": 72,
+      "label": "긍정적",
+      "detail": "최근 감정 추이 상승"
+    },
+    "memoryDiversity": {
+      "score": 68,
+      "label": "보통",
+      "detail": "3개 카테고리에 걸쳐 기억"
+    },
+    "recency": {
+      "score": 90,
+      "label": "최근",
+      "detail": "2일 전 마지막 언급"
+    }
+  },
+  "suggestion": "김팀장과 업무 외 관심사에 대해서도 대화해 보세요.",
+  "trend": "improving",
+  "calculatedAt": "2026-04-19T10:00:00Z"
+}
+// Error 404 PERSON_NOT_FOUND
+// Error 403 FORBIDDEN
+```
+- healthScore: 0~100 (AI 종합 점수)
+- grade: "excellent" (90+) | "good" (70-89) | "fair" (50-69) | "needs_attention" (0-49)
+- factors: 4가지 요인별 세부 점수 (각 0~100)
+  - interactionFrequency: 최근 30일 언급 빈도
+  - sentimentTrend: 감정 추이 방향 (해당 인물 관련 대화)
+  - memoryDiversity: 기억 카테고리 다양성
+  - recency: 최근 언급 시점
+- suggestion: AI 생성 관계 개선 제안 (한국어, 1문장)
+- trend: "improving" | "stable" | "declining" (30일 기준 변화)
+- 캐싱: 6시간 TTL (Weekly Summary와 동일)
+- PersonMemory 0건이면: healthScore=0, grade="needs_attention", 빈 factors, suggestion="아직 기억이 없습니다"
+
+### GET /api/people/health/summary (v2.0)
+전체 인물 관계 건강 요약. 대시보드용.
+
+```json
+// Response 200
+{
+  "totalPeople": 8,
+  "averageHealth": 65,
+  "distribution": {
+    "excellent": 1,
+    "good": 3,
+    "fair": 2,
+    "needs_attention": 2
+  },
+  "topHealthy": [
+    { "personId": 1, "name": "김팀장", "healthScore": 92, "grade": "excellent" }
+  ],
+  "needsAttention": [
+    { "personId": 5, "name": "이과장", "healthScore": 35, "grade": "needs_attention", "lastMentionedAt": "2026-03-15T08:00:00Z" }
+  ],
+  "calculatedAt": "2026-04-19T10:00:00Z"
+}
+```
+- topHealthy: 상위 3명 (healthScore 내림차순)
+- needsAttention: 하위 3명 (healthScore 오름차순)
+- 인물 0명이면: totalPeople=0, averageHealth=0, 빈 배열들
+- 캐싱: 6시간 TTL
+
+---
+
+## 5.12 Daily Digest (v2.1)
+
+### GET /api/digest/today (v2.1)
+오늘의 브리핑. AI가 최근 대화, 메모리, 인물 정보를 종합하여 일일 요약을 생성.
+
+```json
+// Response 200
+{
+  "date": "2026-04-19",
+  "greeting": "좋은 아침이에요! 오늘도 의미 있는 하루 되세요.",
+  "reminders": [
+    {
+      "type": "person_checkin",
+      "title": "이과장님에게 연락할 때",
+      "detail": "3주째 연락이 없습니다. 안부를 물어보는 건 어떨까요?",
+      "personId": 5,
+      "personName": "이과장"
+    },
+    {
+      "type": "memory_followup",
+      "title": "운동 목표 체크",
+      "detail": "주 3회 운동 목표를 세웠는데, 이번 주 진행 상황을 확인해 보세요.",
+      "memoryId": 22
+    }
+  ],
+  "highlights": [
+    {
+      "type": "sentiment_change",
+      "title": "긍정적 대화 추세",
+      "detail": "이번 주 대화가 지난주보다 긍정적이에요. 좋은 흐름이네요!"
+    },
+    {
+      "type": "new_memories",
+      "title": "어제 새로운 기억 3개",
+      "detail": "김팀장 커피 취향, 주말 계획, 프로젝트 마감일을 기억했어요."
+    }
+  ],
+  "stats": {
+    "totalMemories": 45,
+    "thisWeekMessages": 28,
+    "activePeople": 5,
+    "streakDays": 7
+  },
+  "generatedAt": "2026-04-19T06:00:00Z"
+}
+```
+- greeting: AI 생성 인사 (시간대/요일 반영)
+- reminders: 오늘 체크인할 항목 (최대 5개)
+  - type: "person_checkin" | "memory_followup" | "upcoming_event"
+  - personId/memoryId: 관련 엔티티 (optional)
+- highlights: 주요 인사이트 (최대 3개)
+  - type: "sentiment_change" | "new_memories" | "milestone" | "pattern"
+- stats: 간단한 통계
+  - streakDays: 연속 대화 일수
+  - activePeople: 최근 7일간 언급된 인물 수
+- 캐싱: 24시간 TTL (당일 재요청 시 캐시)
+- 데이터 없으면: greeting만 있고 reminders/highlights 빈 배열
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -1430,6 +1573,8 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 | PASSWORD_RESET_TOKEN_INVALID | 400 | 비밀번호 재설정 토큰 무효/만료/사용됨 | — |
 | AI_UNAVAILABLE | 503 | AI 서비스 일시 중단 (Circuit Breaker OPEN) | ✅ |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
+| CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
+| CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -1494,3 +1639,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.5.0 | 2026-04-19 | Chat topics + Chat export (autoceo-s23-R5) |
 | v1.6.0 | 2026-04-19 | Memory smart review suggestions (autoceo-s24-R1) |
 | v1.7.0 | 2026-04-19 | Chat sentiment tracking (autoceo-s24-R1) |
+| v1.8.0 | 2026-04-19 | Weekly Summary report (autoceo-s24-R4) |
+| v1.9.0 | 2026-04-19 | Memory Connections (autoceo-s24-R7) |
+| v2.0.0 | 2026-04-19 | Relationship Health Score — 인물별 관계 건강 점수 (autoceo-s25-R1) |
+| v2.1.0 | 2026-04-19 | Daily Digest — 일일 브리핑 (autoceo-s25-R1) |

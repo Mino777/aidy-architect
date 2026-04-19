@@ -1738,6 +1738,56 @@ AI가 기존 메모리를 스캔하여 기념일을 자동 감지. 감지된 항
 
 ---
 
+## 5.17 Gift Suggestions (v2.6)
+
+AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어를 제안.
+
+### POST /api/people/{id}/gift-suggestions (v2.6)
+인물에 대한 선물 제안 생성. AI가 해당 인물의 메모리(취향, 관심사)를 분석.
+
+```json
+// Request (optional)
+{
+  "occasion": "birthday",
+  "budget": "30000",
+  "count": 5
+}
+// Response 200
+{
+  "personId": 5,
+  "personName": "김팀장",
+  "occasion": "birthday",
+  "suggestions": [
+    {
+      "id": 1,
+      "title": "스타벅스 텀블러",
+      "reason": "스타벅스를 좋아한다고 하셨어요",
+      "priceRange": "20000-35000",
+      "category": "음료/카페",
+      "sourceMemoryIds": [15, 23]
+    },
+    {
+      "id": 2,
+      "title": "캠핑 머그컵",
+      "reason": "주말에 캠핑을 즐기시더라고요",
+      "priceRange": "15000-25000",
+      "category": "아웃도어",
+      "sourceMemoryIds": [42]
+    }
+  ],
+  "generatedAt": "2026-04-19T10:00:00Z"
+}
+// Error 404 PERSON_NOT_FOUND
+```
+- occasion: "birthday" | "anniversary" | "holiday" | "thank_you" | "general" (기본 "general")
+- budget: 원 단위 문자열 (optional, 기본 무제한)
+- count: 1~10 (기본 5)
+- AI 호출이므로 rate limit 적용 (chat 버킷)
+- sourceMemoryIds: 제안 근거가 된 메모리 ID들
+- priceRange: 대략적 가격대 (AI 추정)
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.

@@ -1,6 +1,6 @@
 {
-  "totalQueries": 18,
-  "lastUpdated": "2026-04-19T04:16:05.668Z",
+  "totalQueries": 19,
+  "lastUpdated": "2026-04-19T05:03:08.462Z",
   "hits": {
     "docs/solutions/2026-04-17-worker-stall-detection-protocol": 3,
     "HANDOFF": 3,
@@ -22,8 +22,9 @@
     "docs/worker-prompts/2026-04-18": 2,
     "docs/worker-prompts/2026-04-16": 1,
     "docs/retros/s17-s18-compound-retro": 1,
-    "docs/retros/s20-compound-retro": 1,
-    "docs/compound-principles": 1,
-    "docs/retros/autoceo-s10-round-retro": 1
+    "docs/retros/s20-compound-retro": 2,
+    "docs/compound-principles": 2,
+    "docs/retros/autoceo-s10-round-retro": 1,
+    "docs/retros/s24-autoceo-compound-retro": 1
   }
 }

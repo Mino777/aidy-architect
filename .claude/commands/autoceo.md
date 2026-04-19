@@ -126,9 +126,14 @@ npm run search -- "<이번 작업 키워드>" 3
 ./architect-cli.sh send android "[R{N}] 작업 지시: ..."
 ```
 
-워커 완료 대기:
-- **20분 간격** 폴링 (s26 교훈: 5분은 토큰 60% 낭비)
-- 전원 idle 되면 Step 4로
+워커 완료 대기 — **bash 워처 패턴 (토큰 0)**:
+```bash
+# 백그라운드로 실행 — bash가 30초마다 체크, 전원 idle 시 architect에 알림
+./architect-cli.sh watch-workers 1800 &
+```
+- Architect Claude는 폴링하지 않는다. bash 스크립트가 대신 감시.
+- 전원 idle 시 architect pane에 `[워커 전원 완료]` 메시지가 들어온다.
+- **대기 중 파이프라이닝** — 워커 감시는 bash에 맡기고, Architect는 다음 스펙/WO 작성.
 - **재시작하지 않음** — 같은 세션에 다음 라운드 프롬프트를 바로 전송 (토큰 절약)
 - 재시작은 CLAUDE.md/settings 변경 시 또는 10+ 라운드 누적 시에만
 
@@ -238,7 +243,7 @@ done
 - 판단이 어려우면 보수적으로 (HOLD SCOPE, 안전한 옵션).
 - 각 라운드는 독립적. 롤백된 라운드의 다음 라운드는 깨끗한 상태에서 시작.
 - 서버 API 변경 → 클라이언트 순서. API 무관한 작업 → 2-way 병렬 (3-way 금지).
-- 워커 완료 대기 시 **20분 간격** polling. **idle 시간에 다음 라운드 선행 작업 수행**. 매 2라운드마다 `/compact` 실행.
+- 워커 완료 대기: `./architect-cli.sh watch-workers &` (bash 감시, 토큰 0). Claude는 폴링하지 않는다. 매 2라운드마다 `/compact` 실행.
 - 보호 파일은 절대 수정하지 않는다.
 - 워커에게 보내는 프롬프트에 라운드 번호 + 커밋 규칙 + 파일 제한을 항상 포함.
 

@@ -485,6 +485,64 @@ verify() {
     return $failed
 }
 
+# ─── 워커 완료 감시 (pub/sub 대체: bash가 폴링, Claude에 알림) ───
+# 사용법: ./architect-cli.sh watch-workers [timeout_sec]
+# - bash가 30초마다 tmux pane을 확인 (토큰 0)
+# - 전원 idle 되면 architect pane에 알림 전송
+# - architect Claude는 이 알림을 유저 메시지로 받아서 다음 단계 진행
+watch_workers() {
+    local timeout="${1:-1800}"
+    local poll=30
+    local elapsed=0
+    local workers=("server" "ios" "android")
+
+    echo -e "${CYAN}[watch] 워커 완료 감시 시작 (timeout=${timeout}s, poll=${poll}s)${NC}"
+    echo -e "${CYAN}  감시 대상: ${workers[*]}${NC}"
+
+    # 첫 dispatch 직후 working 진입 대기
+    sleep 10
+
+    while [ "$elapsed" -lt "$timeout" ]; do
+        local all_idle=true
+        local status_line=""
+        for w in "${workers[@]}"; do
+            if is_pane_idle "$w"; then
+                status_line="$status_line [$w:✅]"
+            else
+                all_idle=false
+                status_line="$status_line [$w:⏳]"
+            fi
+        done
+
+        if $all_idle; then
+            echo -e "${GREEN}[watch] 전원 idle! (${elapsed}s)${NC}"
+
+            # 각 워커 커밋 상태 수집
+            local report=""
+            for w in "${workers[@]}"; do
+                local dir="$HOME/Develop/aidy-${w}"
+                if [ -d "$dir" ]; then
+                    local last_commit
+                    last_commit=$(cd "$dir" && git log --oneline -1 2>/dev/null || echo "unknown")
+                    report="$report\n  $w: $last_commit"
+                fi
+            done
+
+            # architect pane에 알림 전송
+            local notify_msg="[워커 전원 완료] ${elapsed}초 소요${report}"
+            tmux send-keys -t "$TMUX_SESSION:0.0" "$notify_msg" Enter
+            return 0
+        fi
+
+        sleep "$poll"
+        elapsed=$((elapsed + poll))
+    done
+
+    echo -e "${YELLOW}[watch] timeout (${timeout}s) — 미완료 워커 있음${NC}"
+    tmux send-keys -t "$TMUX_SESSION:0.0" "[워커 감시 timeout] ${timeout}초 경과. 수동 확인 필요." Enter
+    return 1
+}
+
 # ─── 워커 재시작 (compound Phase 6용) ───
 
 restart_workers() {
@@ -578,6 +636,7 @@ case "${1:-help}" in
     preflight)   preflight ;;
     verify)      verify "${2:-all}" ;;
     restart-workers) restart_workers ;;
+    watch-workers)   watch_workers "${2:-1800}" ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
     status)

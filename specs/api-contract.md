@@ -1605,6 +1605,139 @@ AI가 기존 메모리를 스캔하여 기념일을 자동 감지. 감지된 항
 
 ---
 
+## 5.15 Notification Preferences (v2.4)
+
+알림 유형별 세분화 설정. Settings의 단순 on/off 대신, 기능별 알림을 개별 제어.
+
+### GET /api/notifications/preferences (v2.4)
+알림 선호 설정 조회. 설정이 없으면 기본값으로 생성 후 반환.
+
+```json
+// Response 200
+{
+  "dailyDigest": true,
+  "dailyDigestTime": "09:00",
+  "weeklySummary": true,
+  "weeklySummaryDay": "monday",
+  "anniversaryReminder": true,
+  "anniversaryReminderDaysBefore": 3,
+  "conversationStarters": true,
+  "memoryInsights": false,
+  "relationshipHealth": true
+}
+```
+- Settings.notification=false 이면 모든 알림 비활성 (마스터 스위치)
+- 개별 설정은 마스터 스위치가 true일 때만 유효
+- dailyDigestTime: HH:mm (24시간 형식), 기본 "09:00"
+- weeklySummaryDay: "monday"~"sunday", 기본 "monday"
+- anniversaryReminderDaysBefore: 1~30, 기본 3
+
+### PUT /api/notifications/preferences (v2.4)
+알림 선호 설정 업데이트. Partial update.
+
+```json
+// Request (일부만 전달 가능)
+{
+  "dailyDigest": false,
+  "anniversaryReminderDaysBefore": 7
+}
+// Response 200: 전체 Preferences 객체 (위와 동일 형식)
+// Error 400 VALIDATION_ERROR — dailyDigestTime 형식 오류, anniversaryReminderDaysBefore 범위 초과
+```
+
+**알림 유형별 설명:**
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| dailyDigest | boolean | true | Daily Digest 푸시 알림 |
+| dailyDigestTime | string | "09:00" | 발송 시각 (HH:mm) |
+| weeklySummary | boolean | true | Weekly Summary 푸시 알림 |
+| weeklySummaryDay | string | "monday" | 발송 요일 |
+| anniversaryReminder | boolean | true | 기념일 다가올 때 알림 |
+| anniversaryReminderDaysBefore | int | 3 | 기념일 N일 전 알림 (1~30) |
+| conversationStarters | boolean | true | 대화 주제 제안 알림 |
+| memoryInsights | boolean | false | 메모리 인사이트 발견 시 알림 |
+| relationshipHealth | boolean | true | 관계 건강도 변화 알림 |
+
+---
+
+## 5.16 Relationship Nudges (v2.5)
+
+오래 연락하지 않은 사람에게 연락을 제안하는 AI 기반 넛지. lastMentionedAt + Relationship Health Score 기반.
+
+### GET /api/nudges (v2.5)
+현재 활성 넛지 목록. 우선순위 높은 순 정렬.
+
+```json
+// Query: ?limit=5 (optional, default 5, max 20)
+// Response 200
+{
+  "nudges": [
+    {
+      "id": 1,
+      "personId": 5,
+      "personName": "김팀장",
+      "relationship": "직장 상사",
+      "reason": "32일 동안 언급이 없습니다",
+      "lastMentionedAt": "2026-03-18T14:00:00Z",
+      "daysSilent": 32,
+      "suggestion": "김팀장의 최근 프로젝트 진행 상황을 물어보세요",
+      "priority": "high",
+      "createdAt": "2026-04-19T09:00:00Z"
+    }
+  ],
+  "total": 3,
+  "generatedAt": "2026-04-19T09:00:00Z"
+}
+```
+- priority: "high" (30일+) | "medium" (14~29일) | "low" (7~13일)
+- 넛지는 서버에서 Daily Digest 생성 시 함께 갱신 (별도 AI 호출 아님)
+- 이미 dismiss된 넛지는 제외
+- reason/suggestion은 AI가 생성
+
+### POST /api/nudges/{id}/dismiss (v2.5)
+넛지 일시 숨김. 7일 후 조건 충족 시 재생성 가능.
+
+```json
+// Response 204 (No Content)
+// Error 404 NUDGE_NOT_FOUND
+```
+
+### GET /api/nudges/settings (v2.5)
+넛지 생성 기준 설정 조회.
+
+```json
+// Response 200
+{
+  "enabled": true,
+  "silentDaysThreshold": 14,
+  "maxNudgesPerDay": 3,
+  "excludedPersonIds": []
+}
+```
+
+### PUT /api/nudges/settings (v2.5)
+넛지 설정 업데이트. Partial update.
+
+```json
+// Request
+{
+  "silentDaysThreshold": 21,
+  "excludedPersonIds": [5, 8]
+}
+// Response 200: 전체 Settings 객체
+// Error 400 VALIDATION_ERROR — silentDaysThreshold 범위 (1~90)
+```
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| enabled | boolean | true | 넛지 기능 활성화 |
+| silentDaysThreshold | int | 14 | N일 이상 미언급 시 넛지 생성 (1~90) |
+| maxNudgesPerDay | int | 3 | 하루 최대 넛지 수 (1~10) |
+| excludedPersonIds | int[] | [] | 넛지 제외할 인물 ID 목록 |
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -1763,6 +1896,7 @@ AI가 기존 메모리를 스캔하여 기념일을 자동 감지. 감지된 항
 | CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
 | ANNIVERSARY_NOT_FOUND | 404 | 기념일 없음 | — |
+| NUDGE_NOT_FOUND | 404 | 넛지 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)

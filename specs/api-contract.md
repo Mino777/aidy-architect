@@ -1164,6 +1164,117 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 
 ---
 
+## 5.9 Weekly Summary (v1.8)
+
+### GET /api/summary/weekly (v1.8)
+주간 종합 리포트. 대화, 메모리, 감정 데이터를 AI가 분석하여 한 주 요약을 생성.
+
+```json
+// Query: ?weekOffset=0 (optional, default 0 = 이번 주, 1 = 지난주, max 4)
+// Response 200
+{
+  "weekStart": "2026-04-13",
+  "weekEnd": "2026-04-19",
+  "highlights": [
+    "프로젝트 마감일 관련 대화가 많았습니다",
+    "운동 목표를 3회 달성했습니다",
+    "새로운 취미 활동에 대해 이야기했습니다"
+  ],
+  "stats": {
+    "totalChats": 24,
+    "totalMessages": 156,
+    "memoriesCreated": 8,
+    "memoriesUpdated": 3,
+    "topCategories": ["work", "health", "hobby"]
+  },
+  "sentiment": {
+    "overall": "positive",
+    "score": 0.68,
+    "trend": "improving",
+    "dominantEmotion": "joy"
+  },
+  "topTopics": [
+    { "topic": "프로젝트 진행", "count": 8 },
+    { "topic": "운동/건강", "count": 5 },
+    { "topic": "취미 활동", "count": 3 }
+  ],
+  "advice": "이번 주는 업무 관련 대화가 많았어요. 주말에는 취미 시간을 더 가져보는 건 어떨까요?"
+}
+```
+- highlights: AI가 생성한 주간 하이라이트 (최대 5개, 한국어)
+- stats: 정량 통계 (DB 쿼리 기반)
+- sentiment: 주간 감정 요약 (v1.7 sentiment 데이터 재활용)
+- trend: "improving" | "stable" | "declining" (전주 대비)
+- topTopics: 주요 대화 주제 (topics 데이터 활용, count 내림차순, 최대 5개)
+- advice: AI가 생성한 한 줄 조언 (선택적, 빈 문자열 가능)
+- 캐싱 권장: 같은 weekOffset으로 6시간 이내 재요청 시 캐시 반환
+- 데이터 없으면: highlights 빈 배열, stats 모두 0, sentiment neutral
+
+---
+
+## 5.10 Memory Connections (v1.9)
+
+### GET /api/memories/{id}/connections (v1.9)
+특정 메모리와 관련된 다른 메모리 목록. AI가 내용 유사도를 분석하여 연결.
+
+```json
+// Query: ?limit=5 (optional, default 5, max 10)
+// Response 200
+{
+  "memoryId": 15,
+  "connections": [
+    {
+      "memoryId": 22,
+      "title": "주 3회 운동 목표",
+      "category": "health",
+      "relevance": 0.85,
+      "reason": "같은 건강 목표 관련 메모리입니다"
+    },
+    {
+      "memoryId": 31,
+      "title": "헬스장 등록",
+      "category": "health",
+      "relevance": 0.72,
+      "reason": "운동 습관과 관련된 메모리입니다"
+    }
+  ],
+  "totalConnections": 4
+}
+```
+- relevance: 0.0 ~ 1.0 (AI 유사도 점수)
+- reason: 연결 이유 (한국어, 1문장)
+- 같은 카테고리 + 키워드 유사도 기반
+- 자기 자신 제외, dismissed/삭제 메모리 제외
+
+### POST /api/memories/{id}/connections (v1.9)
+수동으로 메모리 연결 추가.
+
+```json
+// Request
+{ "targetMemoryId": 22 }
+// Response 201
+{
+  "sourceMemoryId": 15,
+  "targetMemoryId": 22,
+  "type": "manual",
+  "createdAt": "2026-04-19T12:00:00Z"
+}
+// Error 404 MEMORY_NOT_FOUND
+// Error 409 CONNECTION_EXISTS
+```
+- type: "auto" (AI 생성) | "manual" (사용자 생성)
+- 양방향: A→B 연결 시 B→A도 자동 생성
+
+### DELETE /api/memories/{id}/connections/{targetId} (v1.9)
+메모리 연결 삭제.
+
+```json
+// Response 204 No Content
+// Error 404 CONNECTION_NOT_FOUND
+```
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.

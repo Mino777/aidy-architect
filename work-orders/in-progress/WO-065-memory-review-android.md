@@ -2,7 +2,7 @@
 
 **담당**: android
 **우선순위**: P2
-**상태**: backlog
+**상태**: in-progress
 **API 버전**: v1.6.0
 
 ## 작업 내용

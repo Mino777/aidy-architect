@@ -364,6 +364,87 @@ wo_complete() {
     echo -e "${GREEN}[WO-${wo_num}] in-progress → done ✅${NC}"
 }
 
+# ─── 빌드/테스트 직접 검증 ───
+
+verify() {
+    local target="${1:-all}"
+    local failed=0
+
+    verify_one() {
+        local name=$1
+        local dir="$HOME/Develop/aidy-$name"
+        local build_cmd=$2
+        local test_cmd=$3
+        local test_parse=$4
+
+        echo -e "${CYAN}[$name] 빌드 검증 시작${NC}"
+        if ! (cd "$dir" && eval "$build_cmd" > /tmp/aidy-verify-$name-build.log 2>&1); then
+            echo -e "${RED}[$name] 빌드 FAIL${NC}"
+            tail -5 /tmp/aidy-verify-$name-build.log
+            failed=1
+            return 1
+        fi
+        echo -e "${GREEN}[$name] 빌드 PASS${NC}"
+
+        echo -e "${CYAN}[$name] 테스트 실행${NC}"
+        if ! (cd "$dir" && eval "$test_cmd" > /tmp/aidy-verify-$name-test.log 2>&1); then
+            echo -e "${RED}[$name] 테스트 FAIL${NC}"
+            tail -10 /tmp/aidy-verify-$name-test.log
+            failed=1
+            return 1
+        fi
+
+        local count
+        count=$(cd "$dir" && eval "$test_parse" 2>/dev/null || echo "?")
+        echo -e "${GREEN}[$name] 테스트 PASS — $count tests${NC}"
+    }
+
+    case "$target" in
+        server)
+            verify_one server \
+                "./gradlew clean build -x test" \
+                "./gradlew test" \
+                "grep -oh 'tests=\"[0-9]*\"' build/test-results/test/TEST-*.xml | awk -F'\"' '{sum+=\$2} END{print sum}'"
+            ;;
+        ios)
+            verify_one ios \
+                "tuist generate --no-open && xcodebuild build -workspace Aidy.xcworkspace -scheme Aidy -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' -quiet" \
+                "xcodebuild test -workspace Aidy.xcworkspace -scheme Aidy -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' -quiet" \
+                "cat /tmp/aidy-verify-ios-test.log | grep -o 'with [0-9]* tests' | grep -o '[0-9]*'"
+            ;;
+        android)
+            verify_one android \
+                "./gradlew assembleDebug" \
+                "./gradlew testDebugUnitTest" \
+                "grep -oh 'tests=\"[0-9]*\"' app/build/test-results/testDebugUnitTest/TEST-*.xml | awk -F'\"' '{sum+=\$2} END{print sum}'"
+            ;;
+        all)
+            echo -e "${GREEN}[Architect] 전체 워커 빌드/테스트 검증${NC}"
+            echo "════════════════════════════════════"
+            verify_one server \
+                "./gradlew clean build -x test" \
+                "./gradlew test" \
+                "grep -oh 'tests=\"[0-9]*\"' build/test-results/test/TEST-*.xml | awk -F'\"' '{sum+=\$2} END{print sum}'"
+            echo "────────────────────────────────────"
+            verify_one android \
+                "./gradlew assembleDebug" \
+                "./gradlew testDebugUnitTest" \
+                "grep -oh 'tests=\"[0-9]*\"' app/build/test-results/testDebugUnitTest/TEST-*.xml | awk -F'\"' '{sum+=\$2} END{print sum}'"
+            echo "════════════════════════════════════"
+            if [ "$failed" = "0" ]; then
+                echo -e "${GREEN}[전체 검증 PASS]${NC}"
+            else
+                echo -e "${RED}[일부 검증 FAIL — 위 로그 확인]${NC}"
+            fi
+            ;;
+        *)
+            echo -e "${RED}[오류] verify <server|ios|android|all>${NC}"
+            exit 1
+            ;;
+    esac
+    return $failed
+}
+
 # ─── 메인 라우터 ───
 
 case "${1:-help}" in
@@ -373,6 +454,7 @@ case "${1:-help}" in
     wait-idle)   wait_for_idle "$2" "${3:-1800}" ;;
     run)         cli_run "$2" "$3" ;;
     run-all)     cli_run_all ;;
+    verify)      verify "${2:-all}" ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
     status)
@@ -396,6 +478,9 @@ case "${1:-help}" in
         echo "CLI 모드 (VS Code 호환):"
         echo "  ./architect-cli.sh run <target> \"msg\"                               — claude -p 원샷"
         echo "  ./architect-cli.sh run-all                                          — 전체 병렬 실행"
+        echo ""
+        echo "검증:"
+        echo "  ./architect-cli.sh verify <server|ios|android|all>                  — 빌드+테스트 직접 검증"
         echo ""
         echo "Work Order:"
         echo "  ./architect-cli.sh wo <number>                                      — WO 활성화"

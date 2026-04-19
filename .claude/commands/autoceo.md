@@ -117,22 +117,52 @@ npm run search -- "<이번 작업 키워드>" 3
 ```
 
 워커 완료 대기:
-- 2분 간격으로 `inbox/worker-status.json` 확인
+- **5분 간격** 폴링 (토큰 버스트 방지 — s6 교훈)
 - 전원 idle 되면 Step 4로
 - **재시작하지 않음** — 같은 세션에 다음 라운드 프롬프트를 바로 전송 (토큰 절약)
 - 재시작은 CLAUDE.md/settings 변경 시 또는 10+ 라운드 누적 시에만
 
-### Step 4: QA (Gate 검증)
+### Step 3.5: 파이프라이닝 (워커 대기 중 선행 작업)
 
-각 워커에 대해 순서대로:
+**워커가 일하는 동안 Architect는 idle하지 않는다.**
+
+서버 워커가 구현 중일 때:
+- 다음 피처의 스펙 초안 작성
+- 다음 라운드 WO 미리 작성
+- 이전 라운드 Gate-1 리뷰 정리
+
+클라이언트 워커가 일하는 동안:
+- 완료된 워커부터 즉시 Gate-1 시작 (전원 대기 불필요)
+- 서버 빌드 직접 검증 (`./architect-cli.sh verify server`)
 
 ```
-1. /cross-session-review {워커}  — 코드 line-by-line (메타데이터 신뢰 금지)
-2. /gate-1 {워커}               — 스펙 준수 필드별 대조
-3. 빌드 검증:
-   - server: cd ~/Develop/aidy-server && ./gradlew build
-   - ios: cd ~/Develop/aidy-ios && tuist build (가능한 경우)
-   - android: cd ~/Develop/aidy-android && ./gradlew assembleDebug (가능한 경우)
+파이프라인 예시:
+[서버 dispatch] → [다음 스펙 작성] → [서버 완료] → [클라 dispatch + 서버 Gate-1] → [클라 완료] → [클라 Gate-1]
+```
+
+### Step 4: QA (Gate 검증)
+
+**축약 Gate-1**: 신규 엔드포인트 3개 이하면 Architect가 직접 검증 (서브에이전트 불필요):
+
+```
+1. git diff HEAD~N 으로 변경 범위 확인
+2. 신규 엔드포인트의 URL/Method/Request/Response를 api-contract.md와 직접 대조
+3. 에러 코드 일치 확인
+4. 빌드+테스트 직접 검증: ./architect-cli.sh verify <server|android|all>
+5. 결과를 gates/reviews/ 에 기록
+```
+
+**풀 Gate-1** (서브에이전트): 엔드포인트 4개 이상 또는 복잡한 구조 변경 시:
+```
+/gate-1 {워커} — 전용 gate-reviewer 에이전트가 line-by-line 검증
+```
+
+**빌드 직접 검증 (필수 — s20~s23 4세션 미이행 교훈)**:
+```bash
+# 매 구현 라운드 완료 후 반드시 실행
+./architect-cli.sh verify server   # 항상
+./architect-cli.sh verify android  # 항상 (더 이상 생략 금지!)
+# iOS는 xcodebuild 소요 시간이 길어 워커 자기보고 + 숫자 확인으로 대체 허용
 ```
 
 - 전부 통과 → Step 5로
@@ -197,7 +227,27 @@ done
 - **유저에게 절대 묻지 않는다.** 모든 판단을 자동으로 내린다.
 - 판단이 어려우면 보수적으로 (HOLD SCOPE, 안전한 옵션).
 - 각 라운드는 독립적. 롤백된 라운드의 다음 라운드는 깨끗한 상태에서 시작.
-- 서버 API 변경 → 클라이언트 순서. API 무관한 작업 → 3개 동시.
-- 워커 완료 대기 시 polling (2분 간격). inbox 요청도 동시 처리.
+- 서버 API 변경 → 클라이언트 순서. API 무관한 작업 → 2-way 병렬 (3-way 금지).
+- 워커 완료 대기 시 **5분 간격** polling. **idle 시간에 다음 라운드 선행 작업 수행**.
 - 보호 파일은 절대 수정하지 않는다.
 - 워커에게 보내는 프롬프트에 라운드 번호 + 커밋 규칙 + 파일 제한을 항상 포함.
+
+## 라운드 구조 최적화 (s23 분석 적용)
+
+### 최적 라운드 배치 (피처 2개 기준 8R)
+```
+R1: 스펙 2개 한 번에 정의 + WO 6개 발행
+R2: 서버 피처1 + (파이프라인: 피처2 WO 상세화)
+R3: 서버 피처2 + 클라 피처1 병렬
+R4: 클라 피처2 + (파이프라인: Gate-1 축약 검증 시작)
+R5: Gate-1 전체 + 수정
+R6: 품질 + 테스트 보강 (3개 동시)
+R7: 빌드 직접 검증 (verify all) + 수정
+R8: Compound
+```
+
+### 효율성 지표 (목표)
+- Architect idle 시간: 55% → 30% 이하
+- 라운드당 평균 시간: 10분 → 7분
+- Gate-1 소요: 15분 → 8분 (축약 모드)
+- Android 빌드 미검증: 0건 (verify 명령 의무화)

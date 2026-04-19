@@ -364,6 +364,45 @@ wo_complete() {
     echo -e "${GREEN}[WO-${wo_num}] in-progress → done ✅${NC}"
 }
 
+# ─── 시스템 헬스 체크 ───
+
+preflight() {
+    echo -e "${GREEN}[Preflight] 시스템 리소스 점검${NC}"
+
+    # Swap 사용률 체크
+    local swap_info swap_used swap_total swap_pct
+    swap_info=$(sysctl -n vm.swapusage 2>/dev/null)
+    if [[ -n "$swap_info" ]]; then
+        swap_total=$(echo "$swap_info" | sed 's/.*total = \([0-9.]*\)M.*/\1/')
+        swap_used=$(echo "$swap_info" | sed 's/.*used = \([0-9.]*\)M.*/\1/')
+        if [[ -n "$swap_total" && "$swap_total" != "0.00" ]]; then
+            swap_pct=$(echo "$swap_used $swap_total" | awk '{printf "%.0f", ($1/$2)*100}')
+            if [ "$swap_pct" -ge 80 ]; then
+                echo -e "${RED}  ⚠️  Swap ${swap_pct}% (${swap_used}M/${swap_total}M) — 워커 크래시 위험!${NC}"
+                echo -e "${YELLOW}  → 불필요 앱 종료 후 시작 권장${NC}"
+            else
+                echo -e "${GREEN}  ✅ Swap ${swap_pct}% (${swap_used}M/${swap_total}M)${NC}"
+            fi
+        else
+            echo -e "${GREEN}  ✅ Swap 미사용${NC}"
+        fi
+    fi
+
+    # Claude 인스턴스 수 체크
+    local claude_count
+    claude_count=$(ps aux | grep -c "[c]laude")
+    if [ "$claude_count" -ge 4 ]; then
+        echo -e "${RED}  ⚠️  Claude 인스턴스 ${claude_count}개 — 16GB 머신 권장 최대 3개${NC}"
+    else
+        echo -e "${GREEN}  ✅ Claude 인스턴스 ${claude_count}개${NC}"
+    fi
+
+    # 총 메모리
+    local total_mem
+    total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1024/1024/1024}')
+    echo -e "${CYAN}  📊 시스템 메모리: ${total_mem}GB${NC}"
+}
+
 # ─── 빌드/테스트 직접 검증 ───
 
 verify() {
@@ -454,6 +493,7 @@ case "${1:-help}" in
     wait-idle)   wait_for_idle "$2" "${3:-1800}" ;;
     run)         cli_run "$2" "$3" ;;
     run-all)     cli_run_all ;;
+    preflight)   preflight ;;
     verify)      verify "${2:-all}" ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
@@ -478,6 +518,9 @@ case "${1:-help}" in
         echo "CLI 모드 (VS Code 호환):"
         echo "  ./architect-cli.sh run <target> \"msg\"                               — claude -p 원샷"
         echo "  ./architect-cli.sh run-all                                          — 전체 병렬 실행"
+        echo ""
+        echo "시스템:"
+        echo "  ./architect-cli.sh preflight                                        — Swap/메모리/인스턴스 점검"
         echo ""
         echo "검증:"
         echo "  ./architect-cli.sh verify <server|ios|android|all>                  — 빌드+테스트 직접 검증"

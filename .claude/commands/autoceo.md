@@ -60,6 +60,16 @@ git reset --hard autoceo-round-N-before
 📌 Checkpoint: autoceo-round-N-before (3개 프로젝트)
 ```
 
+### Step 0: Preflight (시스템 점검)
+
+매 autoceo 시작 전 반드시 실행:
+```bash
+./architect-cli.sh preflight
+```
+- Swap 80%+ → 경고. 불필요 앱 종료 후 시작.
+- Claude 인스턴스 4개+ → 경고. 워커 수 줄이기.
+- 경고 시에도 유저에게 묻지 않고 보수적으로 진행 (1-way 순차 dispatch).
+
 ### Step 1: Research (리서치)
 
 1. 각 워커 프로젝트 상태 분석:

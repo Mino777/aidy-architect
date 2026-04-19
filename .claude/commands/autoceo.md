@@ -126,14 +126,12 @@ npm run search -- "<이번 작업 키워드>" 3
 ./architect-cli.sh send android "[R{N}] 작업 지시: ..."
 ```
 
-워커 완료 대기 — **bash 워처 패턴 (토큰 0)**:
-```bash
-# 백그라운드로 실행 — bash가 30초마다 체크, 전원 idle 시 architect에 알림
-./architect-cli.sh watch-workers 1800 &
-```
-- Architect Claude는 폴링하지 않는다. bash 스크립트가 대신 감시.
-- 전원 idle 시 architect pane에 `[워커 전원 완료]` 메시지가 들어온다.
-- **대기 중 파이프라이닝** — 워커 감시는 bash에 맡기고, Architect는 다음 스펙/WO 작성.
+워커 완료 대기 — **워커 직접 알림 (진짜 pub/sub, 토큰 0)**:
+- 워커 CLAUDE.md에 "커밋 직후 `tmux send-keys -t aidy:0.0`로 architect에 알림" 규칙 있음.
+- 워커가 완료하면 architect pane에 `[server 완료] abc1234 feat: ...` 형태로 메시지 도착.
+- Architect Claude는 이 메시지를 유저 입력으로 받아서 즉시 다음 단계 진행.
+- **폴백**: 20분 내 알림 없으면 `./architect-cli.sh watch-workers 600 &`로 bash 감시 전환.
+- **대기 중 파이프라이닝** — 워커 알림 대기하면서 다음 스펙/WO 작성.
 - **재시작하지 않음** — 같은 세션에 다음 라운드 프롬프트를 바로 전송 (토큰 절약)
 - 재시작은 CLAUDE.md/settings 변경 시 또는 10+ 라운드 누적 시에만
 

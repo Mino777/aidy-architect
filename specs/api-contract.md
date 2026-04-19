@@ -1788,6 +1788,129 @@ AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어
 
 ---
 
+## 5.18 Relationship Timeline (v2.7)
+
+인물별 상호작용 히스토리를 시간순으로 통합 조회. 채팅 언급, 메모리, 기념일을 하나의 타임라인으로 제공.
+
+### GET /api/people/{personId}/timeline (v2.7)
+인물과 관련된 모든 이벤트를 시간순 통합 조회.
+
+```json
+// Query: ?limit=20&offset=0&types=chat,memory,anniversary (all optional)
+// Response 200
+{
+  "personId": 5,
+  "personName": "김팀장",
+  "events": [
+    {
+      "type": "memory",
+      "timestamp": "2026-04-18T14:30:00Z",
+      "title": "스타벅스 선호",
+      "detail": "스타벅스 좋아한다고 함",
+      "memoryId": 15,
+      "category": "preference"
+    },
+    {
+      "type": "chat",
+      "timestamp": "2026-04-17T10:20:00Z",
+      "title": "커피 취향 대화",
+      "detail": "김팀장이 스타벅스 아메리카노를 좋아한다고 했어",
+      "chatMessageId": 42
+    },
+    {
+      "type": "anniversary",
+      "timestamp": "2026-04-25T00:00:00Z",
+      "title": "생일",
+      "detail": "케이크보다 꽃 선호",
+      "anniversaryId": 1,
+      "isFuture": true
+    }
+  ],
+  "total": 15,
+  "hasMore": false
+}
+// Error 404 PERSON_NOT_FOUND
+// Error 403 FORBIDDEN
+```
+- types: "chat" | "memory" | "anniversary" (쉼표 구분, 기본 전체)
+- limit: 1~50 (기본 20)
+- offset: 페이지네이션 (기본 0)
+- 정렬: timestamp 내림차순 (최신 먼저), isFuture=true인 기념일은 맨 위
+- chat: 해당 인물 언급 메시지 (PersonMemory와 연결된 채팅)
+- memory: 해당 인물의 PersonMemory 기록
+- anniversary: 해당 인물의 기념일
+- detail: 원본 내용 요약 (채팅은 content 앞 100자, 메모리는 content, 기념일은 note)
+
+---
+
+## 5.19 Quick Notes (v2.8)
+
+채팅 없이 직접 메모리를 생성. 빠르게 메모를 남기고 싶을 때 사용.
+
+### POST /api/memories/note (v2.8)
+직접 메모리 생성. AI가 카테고리를 자동 분류하고 제목을 생성.
+
+```json
+// Request
+{
+  "content": "김팀장 생일 4월 25일, 케이크보다 꽃 선호",
+  "category": "people",
+  "personName": "김팀장"
+}
+// Response 201
+{
+  "id": 55,
+  "title": "김팀장 생일 — 4월 25일",
+  "content": "김팀장 생일 4월 25일, 케이크보다 꽃 선호",
+  "category": "people",
+  "createdAt": "2026-04-19T12:00:00Z",
+  "autoTitle": true,
+  "personDetail": {
+    "normalizedName": "김팀장",
+    "relationship": null,
+    "trait": "케이크보다 꽃 선호",
+    "context": "직접 메모",
+    "sentiment": "neutral"
+  }
+}
+// Error 400 VALIDATION_ERROR — content 빈 문자열
+// Error 400 EMPTY_MESSAGE — content 누락
+```
+- content: 필수 (1~2000자)
+- category: optional (생략 시 AI가 자동 분류)
+- personName: optional (people 카테고리일 때 인물 연결)
+- autoTitle: AI가 제목을 자동 생성했는지 여부
+- personName 제공 시: 기존 Person 매칭 (normalizedName) 또는 새 Person 생성
+- AI 호출: 제목 생성 + 카테고리 미지정 시 분류 (rate limit: chat 버킷)
+- personDetail: people 카테고리일 때만 포함
+
+### POST /api/memories/note/batch (v2.8)
+여러 메모를 한 번에 생성. 최대 10개.
+
+```json
+// Request
+{
+  "notes": [
+    { "content": "내일 팀 미팅 오후 2시", "category": "schedule" },
+    { "content": "점심 12000원 지출", "category": "finance" }
+  ]
+}
+// Response 201
+{
+  "created": [
+    { "id": 56, "title": "팀 미팅 — 내일 오후 2시", "category": "schedule" },
+    { "id": 57, "title": "점심 지출 12,000원", "category": "finance" }
+  ],
+  "count": 2
+}
+// Error 400 VALIDATION_ERROR — notes 빈 배열, 10개 초과, content 누락
+```
+- notes: 1~10개
+- 각 note는 POST /api/memories/note와 동일 스키마
+- AI 호출 1회로 전체 처리 (배치 프롬프트)
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -2017,3 +2140,8 @@ Retry-After: 30                // 재시도까지 대기 초
 | v2.1.0 | 2026-04-19 | Daily Digest — 일일 브리핑 (autoceo-s25-R1) |
 | v2.2.0 | 2026-04-19 | Conversation Starters — 인물별 대화 주제 추천 (autoceo-s26-R1) |
 | v2.3.0 | 2026-04-19 | Anniversary Reminders — 기념일 자동 감지 + CRUD (autoceo-s26-R1) |
+| v2.4.0 | 2026-04-19 | Notification Preferences — 알림 유형별 세분화 설정 (autoceo-s26-R3) |
+| v2.5.0 | 2026-04-19 | Relationship Nudges — AI 연락 제안 (autoceo-s26-R5) |
+| v2.6.0 | 2026-04-19 | Gift Suggestions — AI 선물 추천 (autoceo-s26-R7) |
+| v2.7.0 | 2026-04-19 | Relationship Timeline — 인물별 상호작용 통합 타임라인 (autoceo-s27-R1) |
+| v2.8.0 | 2026-04-19 | Quick Notes — 채팅 없이 직접 메모리 생성 (autoceo-s27-R1) |

@@ -1418,6 +1418,193 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 
 ---
 
+## 5.13 Conversation Starters (v2.2)
+
+### GET /api/people/{personId}/conversation-starters (v2.2)
+특정 인물과의 대화 주제 추천. AI가 메모리/최근 대화/관심사를 분석하여 자연스러운 대화 시작 포인트를 제안.
+
+```json
+// Response 200
+{
+  "personId": 5,
+  "personName": "김팀장",
+  "starters": [
+    {
+      "id": "starter-1",
+      "category": "recent_memory",
+      "topic": "지난주 제주도 여행",
+      "suggestion": "제주도 여행 어떠셨어요? 맛집 추천받고 싶어요!",
+      "context": "4일 전 제주도 여행 계획을 언급함",
+      "memoryId": 42,
+      "confidence": 0.92
+    },
+    {
+      "id": "starter-2",
+      "category": "shared_interest",
+      "topic": "커피",
+      "suggestion": "요즘 새로 생긴 카페 가보셨어요? 핸드드립이 맛있다더라고요.",
+      "context": "둘 다 커피를 좋아함 (3건의 관련 메모리)",
+      "confidence": 0.85
+    },
+    {
+      "id": "starter-3",
+      "category": "follow_up",
+      "topic": "프로젝트 마감",
+      "suggestion": "프로젝트 마감 잘 끝났어요? 고생 많으셨겠다.",
+      "context": "2주 전 프로젝트 마감 스트레스 언급",
+      "memoryId": 38,
+      "confidence": 0.78
+    }
+  ],
+  "generatedAt": "2026-04-19T10:00:00Z"
+}
+```
+- starters: 최대 5개, confidence 내림차순 정렬
+- category: "recent_memory" | "shared_interest" | "follow_up" | "seasonal" | "general"
+  - recent_memory: 최근 메모리 기반
+  - shared_interest: 공통 관심사 기반
+  - follow_up: 이전 대화 후속
+  - seasonal: 계절/시기 기반 (명절, 연말 등)
+  - general: 범용 주제
+- confidence: 0.0~1.0, AI가 판단한 대화 적절도
+- memoryId: 관련 메모리 (optional)
+- 캐싱: 6시간 TTL
+- 해당 인물 메모리 0건이면: general 카테고리 2개만 반환
+- Error 404 PERSON_NOT_FOUND
+
+---
+
+## 5.14 Anniversary Reminders (v2.3)
+
+### GET /api/anniversaries (v2.3)
+등록된 기념일 목록 조회. 다가오는 순으로 정렬.
+
+```json
+// Query: ?upcoming=true&days=30
+// Response 200
+{
+  "anniversaries": [
+    {
+      "id": 1,
+      "personId": 5,
+      "personName": "김팀장",
+      "title": "생일",
+      "date": "04-25",
+      "type": "birthday",
+      "daysUntil": 6,
+      "nextOccurrence": "2026-04-25",
+      "note": "케이크보다 꽃 선호",
+      "autoDetected": true,
+      "sourceMemoryId": 15,
+      "createdAt": "2026-04-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "personId": 8,
+      "personName": "이과장",
+      "title": "입사 기념일",
+      "date": "05-10",
+      "type": "custom",
+      "daysUntil": 21,
+      "nextOccurrence": "2026-05-10",
+      "note": null,
+      "autoDetected": false,
+      "sourceMemoryId": null,
+      "createdAt": "2026-04-10T00:00:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+- upcoming=true: 다가오는 기념일만 (기본 true)
+- days: 앞으로 N일 이내 (기본 30, 최대 365)
+- type: "birthday" | "anniversary" | "custom"
+- date: MM-dd 형식 (연도 없음, 매년 반복)
+- daysUntil: 다음 발생까지 남은 일수
+- autoDetected: AI가 대화에서 자동 감지한 기념일
+- sourceMemoryId: 자동 감지 시 근거 메모리
+
+### POST /api/anniversaries (v2.3)
+기념일 수동 등록.
+
+```json
+// Request
+{
+  "personId": 5,
+  "title": "결혼기념일",
+  "date": "06-15",
+  "type": "anniversary",
+  "note": "올해 10주년"
+}
+// Response 201
+{
+  "id": 3,
+  "personId": 5,
+  "personName": "김팀장",
+  "title": "결혼기념일",
+  "date": "06-15",
+  "type": "anniversary",
+  "daysUntil": 57,
+  "nextOccurrence": "2026-06-15",
+  "note": "올해 10주년",
+  "autoDetected": false,
+  "sourceMemoryId": null,
+  "createdAt": "2026-04-19T10:00:00Z"
+}
+// Error 400 VALIDATION_ERROR — date 형식 오류, personId 누락
+// Error 404 PERSON_NOT_FOUND
+```
+
+### PUT /api/anniversaries/{id} (v2.3)
+기념일 수정.
+
+```json
+// Request (partial update)
+{
+  "title": "결혼기념일 (10주년)",
+  "note": "레스토랑 예약 필요"
+}
+// Response 200: 수정된 전체 Anniversary 객체
+// Error 404 ANNIVERSARY_NOT_FOUND
+```
+
+### DELETE /api/anniversaries/{id} (v2.3)
+기념일 삭제.
+
+```json
+// Response 204 (No Content)
+// Error 404 ANNIVERSARY_NOT_FOUND
+```
+
+### POST /api/anniversaries/detect (v2.3)
+AI가 기존 메모리를 스캔하여 기념일을 자동 감지. 감지된 항목을 후보로 반환 (자동 저장 안 함).
+
+```json
+// Response 200
+{
+  "candidates": [
+    {
+      "personId": 5,
+      "personName": "김팀장",
+      "title": "생일",
+      "date": "04-25",
+      "type": "birthday",
+      "confidence": 0.95,
+      "sourceMemoryId": 15,
+      "sourceText": "김팀장 생일이 4월 25일이래"
+    }
+  ],
+  "scannedMemories": 45,
+  "generatedAt": "2026-04-19T10:00:00Z"
+}
+```
+- candidates: 감지된 기념일 후보 (최대 20개)
+- confidence: 0.0~1.0
+- 이미 등록된 기념일은 제외
+- AI 호출이므로 rate limit 적용 (chat 버킷)
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -1575,6 +1762,7 @@ AI 응답에 대한 피드백. assistant 메시지에만 허용.
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
 | CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
+| ANNIVERSARY_NOT_FOUND | 404 | 기념일 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -1643,3 +1831,5 @@ Retry-After: 30                // 재시도까지 대기 초
 | v1.9.0 | 2026-04-19 | Memory Connections (autoceo-s24-R7) |
 | v2.0.0 | 2026-04-19 | Relationship Health Score — 인물별 관계 건강 점수 (autoceo-s25-R1) |
 | v2.1.0 | 2026-04-19 | Daily Digest — 일일 브리핑 (autoceo-s25-R1) |
+| v2.2.0 | 2026-04-19 | Conversation Starters — 인물별 대화 주제 추천 (autoceo-s26-R1) |
+| v2.3.0 | 2026-04-19 | Anniversary Reminders — 기념일 자동 감지 + CRUD (autoceo-s26-R1) |

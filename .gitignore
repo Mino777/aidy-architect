@@ -11,3 +11,6 @@ data/embeddings.json
 
 # npm
 package-lock.json
+
+# Hub messages (local only)
+messages/*.json

@@ -74,7 +74,7 @@ tmux_send() {
     if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${target}$"; then
         tmux_target="$TMUX_SESSION:$target"
     elif [[ -n "$pane_idx" ]]; then
-        tmux_target="$TMUX_SESSION:architect.${pane_idx}"
+        tmux_target="$TMUX_SESSION:0.${pane_idx}"
     else
         echo -e "${RED}[오류] $target 윈도우/pane을 찾을 수 없습니다.${NC}"
         exit 1
@@ -205,7 +205,7 @@ is_pane_idle() {
     if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${target}$"; then
         tmux_target="$TMUX_SESSION:$target"
     elif [[ -n "$pane_idx" ]]; then
-        tmux_target="$TMUX_SESSION:architect.${pane_idx}"
+        tmux_target="$TMUX_SESSION:0.${pane_idx}"
     else
         return 2
     fi

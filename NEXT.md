@@ -2,7 +2,7 @@
 
 > /compound Phase 1b에서 자동 판정. actual이 다음 스프린트 baseline이 됨.
 
-## KPI (현재 스프린트: s26)
+## KPI (현재 스프린트: s28)
 
 | 지표 | baseline | target | direction | actual |
 |------|----------|--------|-----------|--------|
@@ -22,7 +22,8 @@
 
 ## 다음 작업 큐
 
-1. v2.4 Smart Notifications (R5~R7)
-2. v2.5 Relationship Map (R5~R8)
-3. v2.6 Interaction Log (R9~R10)
-4. Hub #5: ConsultantFactory `/consult` 커맨드 (파이프라인)
+1. ~~v2.9 Smart Notifications~~ ✅ (s28-R2~R5)
+2. ~~v3.0 Relationship Map~~ ✅ (s28-R2~R5)
+3. ~~v3.1 Interaction Log~~ ✅ (s28-R3~R5)
+4. P-004 Phase 2: Multi-Provider Fallback (OpenAI 등)
+5. Hub #5: ConsultantFactory `/consult` 커맨드 (파이프라인)

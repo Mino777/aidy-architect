@@ -2021,6 +2021,202 @@ AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어
 
 ---
 
+## 5.20 Smart Notifications (v2.9)
+
+AI가 메모리·기념일·관계 건강 점수를 분석하여 자동 생성하는 스마트 알림.
+기존 Notification Preferences(v2.4)의 설정을 따름. 사용자가 dismiss하지 않은 알림만 노출.
+
+### GET /api/notifications/smart (v2.9)
+
+AI가 생성한 스마트 알림 목록. 최근 7일 내 미처리 알림만 반환.
+
+```json
+// Query: ?limit=20&offset=0
+// Response 200
+{
+  "notifications": [
+    {
+      "id": 1,
+      "type": "contact_reminder",
+      "title": "김민수에게 연락할 때가 됐어요",
+      "body": "마지막 대화가 2주 전이에요. 안부를 물어보는 건 어떨까요?",
+      "personId": 5,
+      "personName": "김민수",
+      "priority": "medium",
+      "triggerReason": "last_contact_gap",
+      "createdAt": "2026-04-21T09:00:00Z",
+      "expiresAt": "2026-04-28T09:00:00Z"
+    }
+  ],
+  "totalCount": 3,
+  "hasMore": false
+}
+```
+
+**type enum**: `contact_reminder` | `anniversary_upcoming` | `memory_followup` | `relationship_alert`
+**priority enum**: `high` | `medium` | `low`
+**triggerReason enum**: `last_contact_gap` | `anniversary_near` | `health_score_drop` | `memory_stale` | `birthday_near`
+
+### POST /api/notifications/smart/{id}/dismiss (v2.9)
+```json
+// Response 200
+{ "id": 1, "dismissed": true, "dismissedAt": "2026-04-21T10:00:00Z" }
+// Error 404
+{ "error": "알림을 찾을 수 없습니다.", "code": "NOTIFICATION_NOT_FOUND" }
+```
+
+### POST /api/notifications/smart/generate (v2.9)
+
+수동으로 스마트 알림 생성 트리거. AI가 현재 상태를 분석하여 새 알림을 생성.
+기본적으로 하루 1회 자동 실행되지만, 사용자가 직접 트리거할 수 있음.
+
+```json
+// Response 200
+{ "generated": 3, "message": "3개의 새 알림이 생성되었습니다." }
+```
+
+---
+
+## 5.21 Relationship Map (v3.0)
+
+인물 간 관계를 그래프로 시각화. 노드(인물) + 엣지(관계)로 구성.
+클라이언트가 그래프 렌더링에 사용할 데이터 제공.
+
+### GET /api/people/map (v3.0)
+
+전체 관계 그래프 데이터. 메모리에서 추출된 인물과 관계를 반환.
+
+```json
+// Response 200
+{
+  "nodes": [
+    {
+      "personId": 1,
+      "name": "김민수",
+      "group": "친구",
+      "healthScore": 78,
+      "memoryCount": 15,
+      "lastContactAt": "2026-04-18T14:00:00Z"
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "sourcePersonId": 1,
+      "targetPersonId": 2,
+      "relationship": "같은 회사 동료",
+      "strength": 3,
+      "createdAt": "2026-04-10T09:00:00Z"
+    }
+  ],
+  "totalNodes": 12,
+  "totalEdges": 8
+}
+```
+
+**strength**: 1 (약함) ~ 5 (강함), AI가 메모리 빈도 기반으로 자동 산출
+
+### POST /api/people/map/link (v3.0)
+
+두 인물 간 관계 연결 생성.
+
+```json
+// Request
+{
+  "sourcePersonId": 1,
+  "targetPersonId": 2,
+  "relationship": "같은 회사 동료"
+}
+// Response 201
+{
+  "id": 1,
+  "sourcePersonId": 1,
+  "targetPersonId": 2,
+  "relationship": "같은 회사 동료",
+  "strength": 1,
+  "createdAt": "2026-04-21T10:00:00Z"
+}
+// Error 409
+{ "error": "이미 연결된 관계입니다.", "code": "LINK_EXISTS" }
+// Error 404
+{ "error": "인물을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+### DELETE /api/people/map/link/{id} (v3.0)
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "관계 연결을 찾을 수 없습니다.", "code": "LINK_NOT_FOUND" }
+```
+
+---
+
+## 5.22 Interaction Log (v3.1)
+
+실제 만남·통화·메시지 등 상호작용을 수동으로 기록.
+Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용자가 직접 기록.
+
+### POST /api/people/{personId}/interactions (v3.1)
+
+```json
+// Request
+{
+  "type": "meeting",
+  "title": "점심 식사",
+  "note": "강남역 근처 일식집에서 만남. 이직 고민 상담.",
+  "occurredAt": "2026-04-21T12:30:00Z",
+  "duration": 90
+}
+// Response 201
+{
+  "id": 1,
+  "personId": 5,
+  "type": "meeting",
+  "title": "점심 식사",
+  "note": "강남역 근처 일식집에서 만남. 이직 고민 상담.",
+  "occurredAt": "2026-04-21T12:30:00Z",
+  "duration": 90,
+  "createdAt": "2026-04-21T13:00:00Z"
+}
+// Error 404
+{ "error": "인물을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+**type enum**: `meeting` | `call` | `message` | `video_call` | `other`
+**duration**: 분 단위 (nullable)
+
+### GET /api/people/{personId}/interactions (v3.1)
+
+```json
+// Query: ?limit=20&offset=0&type=meeting
+// Response 200
+{
+  "interactions": [
+    {
+      "id": 1,
+      "personId": 5,
+      "type": "meeting",
+      "title": "점심 식사",
+      "note": "강남역 근처 일식집에서 만남.",
+      "occurredAt": "2026-04-21T12:30:00Z",
+      "duration": 90,
+      "createdAt": "2026-04-21T13:00:00Z"
+    }
+  ],
+  "totalCount": 5,
+  "hasMore": false
+}
+```
+
+### DELETE /api/interactions/{id} (v3.1)
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "상호작용 기록을 찾을 수 없습니다.", "code": "INTERACTION_NOT_FOUND" }
+```
+
+---
+
 ## 9. Health
 
 ### GET /api/health
@@ -2070,6 +2266,10 @@ AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
 | ANNIVERSARY_NOT_FOUND | 404 | 기념일 없음 | — |
 | NUDGE_NOT_FOUND | 404 | 넛지 없음 | — |
+| NOTIFICATION_NOT_FOUND | 404 | 스마트 알림 없음 | — |
+| LINK_EXISTS | 409 | 관계 연결 이미 존재 | — |
+| LINK_NOT_FOUND | 404 | 관계 연결 없음 | — |
+| INTERACTION_NOT_FOUND | 404 | 상호작용 기록 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -2145,3 +2345,6 @@ Retry-After: 30                // 재시도까지 대기 초
 | v2.6.0 | 2026-04-19 | Gift Suggestions — AI 선물 추천 (autoceo-s26-R7) |
 | v2.7.0 | 2026-04-19 | Relationship Timeline — 인물별 상호작용 통합 타임라인 (autoceo-s27-R1) |
 | v2.8.0 | 2026-04-19 | Quick Notes — 채팅 없이 직접 메모리 생성 (autoceo-s27-R1) |
+| v2.9.0 | 2026-04-21 | Smart Notifications — AI 스마트 알림 생성/조회/무시 (autoceo-s28-R1) |
+| v3.0.0 | 2026-04-21 | Relationship Map — 인물 간 관계 그래프 (autoceo-s28-R1) |
+| v3.1.0 | 2026-04-21 | Interaction Log — 수동 상호작용 기록 (autoceo-s28-R1) |

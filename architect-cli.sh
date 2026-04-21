@@ -548,10 +548,10 @@ watch_workers() {
     local workers=("server" "ios" "android")
 
     # 개별 완료 추적 (0=작업중, 1=완료알림済)
-    local -A notified
-    for w in "${workers[@]}"; do
-        notified[$w]=0
-    done
+    # bash 3 호환: associative array 대신 변수명 방식
+    local notified_server=0
+    local notified_ios=0
+    local notified_android=0
 
     echo -e "${CYAN}[watch] 워커 완료 감시 시작 (timeout=${timeout}s, poll=${poll}s)${NC}"
     echo -e "${CYAN}  감시 대상: ${workers[*]}${NC}"
@@ -563,7 +563,9 @@ watch_workers() {
         local all_idle=true
 
         for w in "${workers[@]}"; do
-            if [ "${notified[$w]}" -eq 1 ]; then
+            # bash 3 호환: 변수명 방식으로 notified 체크
+            local nvar="notified_${w}"
+            if [ "${!nvar}" -eq 1 ]; then
                 continue  # 이미 알림 보낸 워커는 스킵
             fi
 
@@ -576,7 +578,7 @@ watch_workers() {
                 fi
                 echo -e "${GREEN}[watch] $w 완료! (${elapsed}s) — $last_commit${NC}"
                 tmux send-keys -t "$TMUX_SESSION:0.0" "[$w 완료] $last_commit" Enter
-                notified[$w]=1
+                eval "notified_${w}=1"
             else
                 all_idle=false
             fi
@@ -604,7 +606,8 @@ watch_workers() {
     # timeout — 미완료 워커 목록 포함
     local pending=""
     for w in "${workers[@]}"; do
-        if [ "${notified[$w]}" -eq 0 ]; then
+        local nvar="notified_${w}"
+        if [ "${!nvar}" -eq 0 ]; then
             pending="$pending $w"
         fi
     done

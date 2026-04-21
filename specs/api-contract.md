@@ -2766,6 +2766,7 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 | GROUP_NOT_FOUND | 404 | 그룹 없음 | — |
 | INVALID_EMOJI | 400 | 허용되지 않은 이모지 | — |
 | REACTION_NOT_FOUND | 404 | 반응 없음 | — |
+| HIGHLIGHT_NOT_FOUND | 404 | 하이라이트 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)

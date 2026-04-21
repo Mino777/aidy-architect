@@ -111,6 +111,18 @@ grep -rn "data class" src/**/model/
 
 ---
 
+## Worktree Isolation (서브에이전트 사용 시)
+
+autoceo 등에서 Gate-1을 서브에이전트로 실행할 때:
+```
+Agent(subagent_type="gate-reviewer", isolation="worktree")
+```
+- 워커가 동시 커밋 중이어도 스냅샷 격리로 안전하게 검증
+- worktree는 검증 완료 후 자동 삭제 (변경 없으면)
+- 리뷰 파일은 메인 워크트리의 `gates/reviews/`에 직접 저장
+
+---
+
 ## 안티패턴
 
 - ❌ 커밋 메시지를 근거로 인용 — 코드만 본다

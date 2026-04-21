@@ -415,6 +415,38 @@ preflight() {
         echo -e "${GREEN}  ✅ Claude 인스턴스 ${claude_count}개${NC}"
     fi
 
+    # memory_pressure 체크
+    local pressure
+    pressure=$(memory_pressure 2>/dev/null | head -1)
+    if echo "$pressure" | grep -qi "warning\|critical"; then
+        echo -e "${RED}  ⚠️  메모리 압박: $pressure${NC}"
+        echo -e "${YELLOW}  → sudo purge 실행 권장${NC}"
+    elif [ -n "$pressure" ]; then
+        echo -e "${GREEN}  ✅ 메모리 상태: $pressure${NC}"
+    fi
+
+    # compressor 체크 (4GB+ → swap 시작 임박)
+    local compressor_pages compressor_mb
+    compressor_pages=$(vm_stat 2>/dev/null | grep "compressor" | awk '{print $NF}' | tr -d '.')
+    if [ -n "$compressor_pages" ] && [ "$compressor_pages" -gt 0 ]; then
+        compressor_mb=$((compressor_pages * 4096 / 1024 / 1024))
+        if [ "$compressor_mb" -ge 4000 ]; then
+            echo -e "${RED}  ⚠️  Compressor ${compressor_mb}MB — swap 임박! sudo purge 권장${NC}"
+        else
+            echo -e "${GREEN}  ✅ Compressor ${compressor_mb}MB${NC}"
+        fi
+    fi
+
+    # 고아 claude 프로세스 체크
+    local orphan_count
+    orphan_count=$(pgrep -f "claude" | wc -l | xargs)
+    local tmux_claude_count
+    tmux_claude_count=$(tmux list-panes -t "$TMUX_SESSION" -F '#{pane_pid}' 2>/dev/null | wc -l | xargs)
+    local expected_count=$((tmux_claude_count + 1))  # +1 for architect
+    if [ "$orphan_count" -gt "$((expected_count * 3))" ]; then
+        echo -e "${YELLOW}  ⚠️  claude 관련 프로세스 ${orphan_count}개 — 고아 프로세스 가능성${NC}"
+    fi
+
     # 총 메모리
     local total_mem
     total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1024/1024/1024}')
@@ -633,12 +665,22 @@ restart_workers() {
         local worker=${workers[$i]}
         local tmux_target="$TMUX_SESSION:0.${pane}"
 
-        # 남은 claude 프로세스 강제 종료 (pane의 child processes)
+        # 남은 claude 프로세스 강제 종료 — 프로세스 그룹 단위 kill (고아 방지)
         local pane_pid
         pane_pid=$(tmux display-message -t "$tmux_target" -p '#{pane_pid}' 2>/dev/null)
         if [ -n "$pane_pid" ]; then
-            # pane shell의 자식 프로세스 중 claude 종료
-            pkill -P "$pane_pid" -f "claude" 2>/dev/null || true
+            # pane shell의 자식 프로세스 중 claude 관련 전부 종료
+            local child_pids
+            child_pids=$(pgrep -P "$pane_pid" 2>/dev/null)
+            for cpid in $child_pids; do
+                # 프로세스 그룹 단위 kill (Node/claude 자식 포함)
+                local pgid
+                pgid=$(ps -o pgid= -p "$cpid" 2>/dev/null | xargs)
+                if [ -n "$pgid" ] && [ "$pgid" != "$$" ]; then
+                    kill -- -"$pgid" 2>/dev/null || true
+                fi
+            done
+            pkill -P "$pane_pid" 2>/dev/null || true
         fi
 
         # 잔여 입력/출력 정리

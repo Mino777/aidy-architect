@@ -2092,6 +2092,313 @@ AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어
 
 ---
 
+## 5.26 Memory Deduplication (v3.5)
+
+AI가 유사/중복 메모리를 탐지하고 병합을 제안. 사용자가 승인하면 하나로 합침.
+
+### GET /api/memories/duplicates (v3.5)
+
+중복 후보 그룹 목록 조회. AI 유사도 점수 기반.
+
+```json
+// Query: ?minSimilarity=0.8&limit=10
+// Response 200
+{
+  "groups": [
+    {
+      "groupId": 1,
+      "memories": [
+        { "id": 10, "content": "민수가 이직 준비 중이라고 했다", "createdAt": "2026-04-10T09:00:00Z" },
+        { "id": 25, "content": "김민수 이직 고민 중", "createdAt": "2026-04-15T14:00:00Z" }
+      ],
+      "similarity": 0.92,
+      "suggestedMerge": "김민수가 이직을 준비하고 있으며 고민 중이다"
+    }
+  ],
+  "totalGroups": 3
+}
+```
+
+### POST /api/memories/duplicates/{groupId}/merge (v3.5)
+
+중복 그룹을 하나의 메모리로 병합. 원본 메모리들은 삭제되고 새 병합 메모리가 생성됨.
+
+```json
+// Request
+{
+  "mergedContent": "김민수가 이직을 준비하고 있으며 고민 중이다",
+  "keepMemoryId": 10
+}
+// Response 200
+{
+  "mergedMemory": {
+    "id": 10,
+    "content": "김민수가 이직을 준비하고 있으며 고민 중이다",
+    "originalIds": [10, 25],
+    "mergedAt": "2026-04-21T12:00:00Z"
+  },
+  "deletedIds": [25]
+}
+// Error 404 MEMORY_NOT_FOUND — groupId 또는 keepMemoryId 없음
+// Error 400 VALIDATION_ERROR — keepMemoryId가 그룹에 속하지 않음
+```
+
+### POST /api/memories/duplicates/{groupId}/dismiss (v3.5)
+
+중복 후보를 무시 처리. 이후 동일 그룹은 다시 추천되지 않음.
+
+```json
+// Response 200
+{ "groupId": 1, "dismissed": true }
+```
+
+---
+
+## 5.27 Chat Reactions (v3.6)
+
+채팅 메시지에 이모지 반응 추가. AI 응답 품질 피드백으로 활용.
+
+### POST /api/chat/{messageId}/reactions (v3.6)
+
+```json
+// Request
+{ "emoji": "❤️" }
+// Response 201
+{
+  "id": 1,
+  "messageId": 42,
+  "emoji": "❤️",
+  "createdAt": "2026-04-21T10:00:00Z"
+}
+// Error 404 MESSAGE_NOT_FOUND
+// Error 400 INVALID_EMOJI — 허용 목록에 없는 이모지
+```
+
+**허용 이모지**: `❤️` | `💡` | `😊` | `👍` | `😢` | `🔥`
+
+### DELETE /api/chat/{messageId}/reactions/{reactionId} (v3.6)
+
+```json
+// Response 204 (No Content)
+// Error 404 REACTION_NOT_FOUND
+```
+
+### GET /api/chat/{messageId}/reactions (v3.6)
+
+```json
+// Response 200
+{
+  "reactions": [
+    { "id": 1, "emoji": "❤️", "createdAt": "2026-04-21T10:00:00Z" },
+    { "id": 2, "emoji": "💡", "createdAt": "2026-04-21T10:05:00Z" }
+  ]
+}
+```
+
+### GET /api/chat/reactions/stats (v3.6)
+
+반응 통계. AI 응답 품질 개선 데이터로 활용.
+
+```json
+// Query: ?days=30
+// Response 200
+{
+  "totalReactions": 45,
+  "byEmoji": {
+    "❤️": 15,
+    "💡": 12,
+    "😊": 8,
+    "👍": 6,
+    "😢": 2,
+    "🔥": 2
+  },
+  "reactionRate": 0.23
+}
+```
+
+---
+
+## 5.28 People Groups (v3.7)
+
+인물을 커스텀 그룹으로 분류. AI가 자동 그룹 추천도 제공.
+
+### GET /api/people/groups (v3.7)
+
+```json
+// Response 200
+{
+  "groups": [
+    {
+      "id": 1,
+      "name": "가족",
+      "color": "#FF6B6B",
+      "memberCount": 4,
+      "createdAt": "2026-04-21T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "직장 동료",
+      "color": "#4ECDC4",
+      "memberCount": 6,
+      "createdAt": "2026-04-21T10:00:00Z"
+    }
+  ]
+}
+```
+
+### POST /api/people/groups (v3.7)
+
+```json
+// Request
+{ "name": "대학 친구", "color": "#45B7D1" }
+// Response 201
+{
+  "id": 3,
+  "name": "대학 친구",
+  "color": "#45B7D1",
+  "memberCount": 0,
+  "createdAt": "2026-04-21T10:00:00Z"
+}
+// Error 409 GROUP_EXISTS — 같은 이름 그룹 존재
+// Error 400 VALIDATION_ERROR — 이름 빈값 또는 30자 초과
+```
+
+### PUT /api/people/groups/{groupId} (v3.7)
+
+```json
+// Request
+{ "name": "대학교 친구들", "color": "#FF9F43" }
+// Response 200
+{ "id": 3, "name": "대학교 친구들", "color": "#FF9F43", "memberCount": 2, "createdAt": "2026-04-21T10:00:00Z" }
+// Error 404 GROUP_NOT_FOUND
+```
+
+### DELETE /api/people/groups/{groupId} (v3.7)
+
+그룹 삭제. 소속 인물의 그룹 연결만 해제, 인물 자체는 삭제 안 됨.
+
+```json
+// Response 204 (No Content)
+// Error 404 GROUP_NOT_FOUND
+```
+
+### POST /api/people/groups/{groupId}/members (v3.7)
+
+인물을 그룹에 추가.
+
+```json
+// Request
+{ "personIds": [1, 3, 5] }
+// Response 200
+{ "groupId": 3, "addedCount": 3, "memberCount": 3 }
+// Error 404 GROUP_NOT_FOUND
+// Error 400 PERSON_NOT_FOUND — personIds 중 없는 인물 포함
+```
+
+### DELETE /api/people/groups/{groupId}/members/{personId} (v3.7)
+
+```json
+// Response 204 (No Content)
+// Error 404 GROUP_NOT_FOUND
+// Error 404 PERSON_NOT_FOUND
+```
+
+### GET /api/people/groups/suggestions (v3.7)
+
+AI가 대화/메모리 패턴을 분석해 그룹 추천.
+
+```json
+// Response 200
+{
+  "suggestions": [
+    {
+      "name": "직장 동료",
+      "personIds": [2, 4, 7],
+      "personNames": ["김철수", "이영희", "박준호"],
+      "reason": "직장 관련 메모리에서 자주 함께 언급되는 인물들입니다",
+      "confidence": 0.85
+    }
+  ]
+}
+```
+
+---
+
+## 5.29 Memory Highlights (v3.8)
+
+AI가 기간별 핵심 메모리를 선별. 주간/월간 하이라이트 카드로 제공.
+
+### GET /api/memories/highlights (v3.8)
+
+```json
+// Query: ?period=weekly&date=2026-04-21
+// Response 200
+{
+  "period": "weekly",
+  "startDate": "2026-04-14",
+  "endDate": "2026-04-20",
+  "highlights": [
+    {
+      "id": 1,
+      "memory": {
+        "id": 42,
+        "content": "민수가 드디어 이직에 성공했다고 알려줬다",
+        "category": "RELATIONSHIP",
+        "personName": "김민수",
+        "createdAt": "2026-04-18T15:00:00Z"
+      },
+      "reason": "오랫동안 추적하던 민수의 이직 건이 해결된 중요한 전환점",
+      "importance": 0.95,
+      "tags": ["milestone", "positive"]
+    },
+    {
+      "id": 2,
+      "memory": {
+        "id": 55,
+        "content": "운동 루틴을 다시 시작했다 - 매일 30분 달리기",
+        "category": "HEALTH",
+        "personName": null,
+        "createdAt": "2026-04-16T08:00:00Z"
+      },
+      "reason": "건강 습관 재개는 장기적으로 중요한 변화",
+      "importance": 0.82,
+      "tags": ["habit_change", "positive"]
+    }
+  ],
+  "summary": "이번 주는 민수의 이직 성공 소식과 함께 건강 습관을 다시 시작한 의미 있는 한 주였어요.",
+  "totalHighlights": 5
+}
+```
+
+**period enum**: `weekly` | `monthly`
+**tags enum**: `milestone` | `positive` | `negative` | `habit_change` | `relationship_change` | `decision` | `learning`
+
+### POST /api/memories/highlights/{highlightId}/save (v3.8)
+
+하이라이트를 영구 저장 (즐겨찾기). 이후 별도 조회 가능.
+
+```json
+// Response 200
+{ "id": 1, "saved": true, "savedAt": "2026-04-21T12:00:00Z" }
+```
+
+### GET /api/memories/highlights/saved (v3.8)
+
+저장된 하이라이트 목록.
+
+```json
+// Query: ?offset=0&limit=20
+// Response 200
+{
+  "highlights": [ /* 위와 동일 구조 + "savedAt" 필드 추가 */ ],
+  "total": 8,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -2455,6 +2762,10 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 | TAG_EXISTS | 409 | 태그 이름 중복 | — |
 | TAG_NOT_FOUND | 404 | 태그 없음 | — |
 | TAG_LIMIT_EXCEEDED | 400 | 메모리당 태그 5개 초과 | — |
+| GROUP_EXISTS | 409 | 그룹 이름 중복 | — |
+| GROUP_NOT_FOUND | 404 | 그룹 없음 | — |
+| INVALID_EMOJI | 400 | 허용되지 않은 이모지 | — |
+| REACTION_NOT_FOUND | 404 | 반응 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -2536,3 +2847,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v3.2.0 | 2026-04-21 | Shared Memories — 공유 링크로 메모리 외부 공유 (autoceo-s29-R1) |
 | v3.3.0 | 2026-04-21 | Memory Tags — 사용자 정의 태그 분류 (autoceo-s29-R1) |
 | v3.4.0 | 2026-04-21 | AI Chat Suggestions — 맥락 기반 대화 주제 추천 (autoceo-s29-R1) |
+| v3.5.0 | 2026-04-21 | Memory Deduplication — AI 중복 메모리 탐지 + 병합 (autoceo-s30-R1) |
+| v3.6.0 | 2026-04-21 | Chat Reactions — 메시지 이모지 반응 (autoceo-s30-R1) |
+| v3.7.0 | 2026-04-21 | People Groups — 인물 그룹 분류 + AI 추천 (autoceo-s30-R1) |
+| v3.8.0 | 2026-04-21 | Memory Highlights — AI 기간별 핵심 메모리 선별 (autoceo-s30-R1) |

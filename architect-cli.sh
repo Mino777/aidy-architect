@@ -427,9 +427,11 @@ preflight() {
 
     # compressor 체크 (4GB+ → swap 시작 임박)
     local compressor_pages compressor_mb
-    compressor_pages=$(vm_stat 2>/dev/null | grep "compressor" | awk '{print $NF}' | tr -d '.')
+    compressor_pages=$(vm_stat 2>/dev/null | grep "occupied by compressor" | awk '{print $NF}' | tr -d '.')
     if [ -n "$compressor_pages" ] && [ "$compressor_pages" -gt 0 ]; then
-        compressor_mb=$((compressor_pages * 4096 / 1024 / 1024))
+        local page_size
+        page_size=$(pagesize 2>/dev/null || echo 16384)
+        compressor_mb=$((compressor_pages * page_size / 1024 / 1024))
         if [ "$compressor_mb" -ge 4000 ]; then
             echo -e "${RED}  ⚠️  Compressor ${compressor_mb}MB — swap 임박! sudo purge 권장${NC}"
         else

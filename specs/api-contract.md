@@ -2930,6 +2930,188 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 
 ---
 
+## 5.34 Onboarding Progress (v4.3)
+
+첫 사용자의 핵심 기능 체험 진행률 추적. 온보딩 완료까지 UI 가이드 노출.
+
+### GET /api/onboarding (v4.3)
+
+```json
+// Response 200
+{
+  "completed": false,
+  "completedAt": null,
+  "steps": [
+    { "key": "first_chat", "title": "첫 대화하기", "completed": true, "completedAt": "2026-04-21T10:00:00Z" },
+    { "key": "check_memory", "title": "기억된 내용 확인하기", "completed": false, "completedAt": null },
+    { "key": "view_person", "title": "인물 프로필 보기", "completed": false, "completedAt": null },
+    { "key": "give_feedback", "title": "기억에 피드백 주기", "completed": false, "completedAt": null },
+    { "key": "explore_people", "title": "인물 탭 둘러보기", "completed": false, "completedAt": null }
+  ],
+  "progress": 20
+}
+```
+
+**step key enum**: `first_chat` | `check_memory` | `view_person` | `give_feedback` | `explore_people`
+- `progress`: 완료 비율 (0~100, 정수)
+- `completed`: 모든 스텝 완료 시 true
+
+### POST /api/onboarding/steps/{key}/complete (v4.3)
+
+해당 온보딩 스텝을 완료 처리. 이미 완료된 스텝은 무시 (멱등).
+
+```json
+// Response 200
+{
+  "key": "check_memory",
+  "completed": true,
+  "completedAt": "2026-04-21T11:00:00Z",
+  "totalProgress": 40
+}
+// Error 400
+{ "error": "유효하지 않은 온보딩 단계입니다.", "code": "INVALID_ONBOARDING_STEP" }
+```
+
+### POST /api/onboarding/skip (v4.3)
+
+온보딩 전체를 건너뛰기 (사용자가 "나중에" 선택 시).
+
+```json
+// Response 200
+{ "completed": true, "skipped": true, "completedAt": "2026-04-21T11:00:00Z" }
+```
+
+---
+
+## 5.35 Home Dashboard (v4.4)
+
+메인 화면에서 한 번의 호출로 오늘의 브리핑, 추천, 관계 요약을 통합 조회.
+
+### GET /api/dashboard (v4.4)
+
+```json
+// Response 200
+{
+  "greeting": "좋은 아침이에요, 민호님 ☀️",
+  "date": "2026-04-21",
+  "digest": {
+    "newMemories": 3,
+    "upcomingAnniversaries": [
+      { "personName": "엄마", "title": "생신", "daysUntil": 2, "date": "2026-04-23" }
+    ],
+    "pendingNudges": 1
+  },
+  "suggestions": [
+    {
+      "type": "check_in",
+      "text": "김민수에게 안부 연락해보는 건 어때요?",
+      "personName": "김민수",
+      "reason": "30일째 대화 없음"
+    }
+  ],
+  "relationshipSummary": {
+    "totalPeople": 15,
+    "healthyCount": 10,
+    "needsAttentionCount": 3,
+    "newCount": 2
+  },
+  "recentHighlights": [
+    {
+      "memoryId": 42,
+      "content": "박서연이 프로젝트 승진했다고 축하받았다",
+      "personName": "박서연",
+      "createdAt": "2026-04-20T18:00:00Z"
+    }
+  ],
+  "onboarding": {
+    "completed": false,
+    "progress": 40
+  }
+}
+```
+
+**규칙:**
+- `greeting`: 시간대별 자동 생성 (아침/점심/저녁/밤)
+- `digest.upcomingAnniversaries`: 7일 이내 기념일만 (최대 3개)
+- `suggestions`: 최대 3개 (check_in 우선)
+- `recentHighlights`: 최근 24시간 핵심 메모리 (최대 3개)
+- `onboarding`: 미완료 시에만 포함 (완료 후 null)
+
+---
+
+## 5.36 Memory Media Attachments (v4.5)
+
+메모리에 이미지를 첨부. multipart/form-data 업로드, 메모리당 최대 3장.
+
+### POST /api/memories/{memoryId}/media (v4.5)
+
+```
+Content-Type: multipart/form-data
+- file: (binary, max 5MB, image/jpeg | image/png | image/webp)
+```
+
+```json
+// Response 201
+{
+  "id": 1,
+  "memoryId": 42,
+  "url": "/api/media/abc123.jpg",
+  "thumbnailUrl": "/api/media/abc123_thumb.jpg",
+  "mimeType": "image/jpeg",
+  "size": 245000,
+  "createdAt": "2026-04-21T12:00:00Z"
+}
+// Error 400
+{ "error": "지원하지 않는 파일 형식입니다.", "code": "INVALID_MEDIA_TYPE" }
+// Error 400
+{ "error": "메모리당 최대 3개의 미디어만 첨부할 수 있습니다.", "code": "MEDIA_LIMIT_EXCEEDED" }
+// Error 400
+{ "error": "파일 크기가 5MB를 초과합니다.", "code": "MEDIA_TOO_LARGE" }
+```
+
+### GET /api/memories/{memoryId}/media (v4.5)
+
+```json
+// Response 200
+{
+  "media": [
+    {
+      "id": 1,
+      "memoryId": 42,
+      "url": "/api/media/abc123.jpg",
+      "thumbnailUrl": "/api/media/abc123_thumb.jpg",
+      "mimeType": "image/jpeg",
+      "size": 245000,
+      "createdAt": "2026-04-21T12:00:00Z"
+    }
+  ],
+  "totalCount": 1
+}
+```
+
+### DELETE /api/memories/media/{mediaId} (v4.5)
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "미디어를 찾을 수 없습니다.", "code": "MEDIA_NOT_FOUND" }
+```
+
+### GET /api/media/{filename} (v4.5)
+
+이미지 파일 직접 서빙. 캐시 헤더 포함.
+
+```
+Response: binary (image/jpeg, image/png, image/webp)
+Cache-Control: public, max-age=31536000
+```
+
+**기존 API 확장:**
+- `GET /api/memories`, `GET /api/memories/{id}` 응답에 `mediaCount` 필드 추가 (정수, 0~3)
+- `GET /api/memories/{id}` 응답에 `media` 배열 포함 (위 스키마와 동일)
+
+---
+
 ## 9. Health
 
 ### GET /api/health
@@ -2995,6 +3177,11 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 | NOT_ARCHIVED | 400 | 아카이브 상태가 아닌 메모리 | — |
 | SUGGESTION_NOT_FOUND | 404 | 병합 제안 없음 | — |
 | INVALID_KEEP_PERSON | 400 | keepPersonId가 제안에 속하지 않음 | — |
+| INVALID_ONBOARDING_STEP | 400 | 유효하지 않은 온보딩 단계 | — |
+| INVALID_MEDIA_TYPE | 400 | 지원하지 않는 미디어 파일 형식 | — |
+| MEDIA_LIMIT_EXCEEDED | 400 | 메모리당 미디어 3개 초과 | — |
+| MEDIA_TOO_LARGE | 400 | 파일 크기 5MB 초과 | — |
+| MEDIA_NOT_FOUND | 404 | 미디어 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -3084,3 +3271,6 @@ Retry-After: 30                // 재시도까지 대기 초
 | v4.0.0 | 2026-04-21 | Memory Archive — 오래된 메모리 아카이브 + 복원 (autoceo-s31-R1) |
 | v4.1.0 | 2026-04-21 | People Merge Suggestions — AI 중복 인물 탐지 + 병합 (autoceo-s31-R1) |
 | v4.2.0 | 2026-04-21 | Chat Export — 대화 내역 텍스트/JSON 내보내기 (autoceo-s31-R1) |
+| v4.3.0 | 2026-04-21 | Onboarding Progress — 첫 사용자 튜토리얼 진행률 추적 (autoceo-s32-R1) |
+| v4.4.0 | 2026-04-21 | Home Dashboard — 메인 화면 통합 브리핑 (autoceo-s32-R1) |
+| v4.5.0 | 2026-04-21 | Memory Media — 메모리 이미지 첨부 (autoceo-s32-R1) |

@@ -2399,6 +2399,231 @@ AI가 기간별 핵심 메모리를 선별. 주간/월간 하이라이트 카드
 
 ---
 
+## 5.30 Chat Context Memory (v3.9)
+
+AI가 최근 대화 맥락을 요약하여 저장하고, 다음 대화 시 자동 주입. 연속성 있는 대화 경험 제공.
+
+### GET /api/chat/context (v3.9)
+
+현재 활성 컨텍스트 조회.
+
+```json
+// Response 200
+{
+  "context": {
+    "id": 1,
+    "summary": "민수 이직 건, 운동 루틴 시작, 엄마 생신 선물 고민 중",
+    "topics": ["민수 이직", "운동", "엄마 생신"],
+    "lastUpdated": "2026-04-21T15:00:00Z",
+    "messageCount": 25,
+    "expiresAt": "2026-04-28T15:00:00Z"
+  }
+}
+```
+
+### POST /api/chat/context/refresh (v3.9)
+
+AI가 최근 N개 메시지를 분석하여 컨텍스트 재생성.
+
+```json
+// Request
+{ "messageCount": 50 }
+// Response 200
+{
+  "context": {
+    "id": 2,
+    "summary": "민수 이직 성공 축하, 운동 3주차 유지 중, 엄마 생신 선물로 꽃 결정",
+    "topics": ["민수 이직 성공", "운동 습관", "엄마 생신"],
+    "lastUpdated": "2026-04-21T16:00:00Z",
+    "messageCount": 50,
+    "expiresAt": "2026-04-28T16:00:00Z"
+  }
+}
+```
+
+### DELETE /api/chat/context (v3.9)
+
+컨텍스트 초기화.
+
+```json
+// Response 204 (No Content)
+```
+
+---
+
+## 5.31 Memory Archive (v4.0)
+
+90일 이상 된 메모리를 자동 아카이브. 아카이브된 메모리는 검색에서 제외되지만 복원 가능.
+
+### GET /api/memories/archive (v4.0)
+
+```json
+// Query: ?offset=0&limit=20
+// Response 200
+{
+  "memories": [
+    {
+      "id": 10,
+      "content": "작년 여름 제주도 여행 계획",
+      "category": "TRAVEL",
+      "personName": null,
+      "archivedAt": "2026-04-01T00:00:00Z",
+      "originalCreatedAt": "2026-01-01T10:00:00Z"
+    }
+  ],
+  "total": 15,
+  "offset": 0,
+  "limit": 20
+}
+```
+
+### POST /api/memories/{id}/archive (v4.0)
+
+메모리를 수동 아카이브.
+
+```json
+// Response 200
+{ "id": 10, "archived": true, "archivedAt": "2026-04-21T12:00:00Z" }
+// Error 404 MEMORY_NOT_FOUND
+```
+
+### POST /api/memories/{id}/restore (v4.0)
+
+아카이브된 메모리 복원.
+
+```json
+// Response 200
+{ "id": 10, "archived": false, "restoredAt": "2026-04-21T12:00:00Z" }
+// Error 404 MEMORY_NOT_FOUND
+// Error 400 NOT_ARCHIVED — 아카이브 상태가 아닌 메모리
+```
+
+### GET /api/memories/archive/stats (v4.0)
+
+아카이브 통계.
+
+```json
+// Response 200
+{
+  "totalArchived": 15,
+  "byCategory": { "TRAVEL": 3, "WORK": 5, "HEALTH": 2, "RELATIONSHIP": 5 },
+  "oldestArchivedAt": "2026-01-15T00:00:00Z"
+}
+```
+
+---
+
+## 5.32 People Merge Suggestions (v4.1)
+
+AI가 중복 인물을 탐지하고 병합을 제안. "김민수"와 "민수"가 같은 사람인지 판별.
+
+### GET /api/people/merge-suggestions (v4.1)
+
+```json
+// Response 200
+{
+  "suggestions": [
+    {
+      "id": 1,
+      "person1": { "id": 5, "name": "김민수" },
+      "person2": { "id": 12, "name": "민수" },
+      "confidence": 0.91,
+      "reason": "같은 직장, 유사한 대화 패턴, 이름 부분 일치",
+      "sharedMemoryCount": 8
+    }
+  ],
+  "totalSuggestions": 2
+}
+```
+
+### POST /api/people/merge-suggestions/{id}/merge (v4.1)
+
+두 인물을 병합. keepPersonId의 이름을 유지하고, 다른 인물의 메모리를 이관.
+
+```json
+// Request
+{ "keepPersonId": 5 }
+// Response 200
+{
+  "mergedPerson": {
+    "id": 5,
+    "name": "김민수",
+    "memoriesTransferred": 8,
+    "mergedAt": "2026-04-21T12:00:00Z"
+  },
+  "deletedPersonId": 12
+}
+// Error 404 SUGGESTION_NOT_FOUND
+// Error 400 INVALID_KEEP_PERSON — keepPersonId가 제안에 속하지 않음
+```
+
+### POST /api/people/merge-suggestions/{id}/dismiss (v4.1)
+
+병합 제안 무시.
+
+```json
+// Response 200
+{ "id": 1, "dismissed": true }
+```
+
+---
+
+## 5.33 Chat Export (v4.2)
+
+대화 내역을 텍스트/JSON 형식으로 내보내기.
+
+### GET /api/chat/export (v4.2)
+
+```json
+// Query: ?format=text&startDate=2026-04-01&endDate=2026-04-21
+// Response 200 (format=json)
+{
+  "export": {
+    "format": "json",
+    "period": { "start": "2026-04-01", "end": "2026-04-21" },
+    "messageCount": 150,
+    "messages": [
+      {
+        "id": 1,
+        "role": "user",
+        "content": "오늘 민수를 만났어",
+        "createdAt": "2026-04-01T10:00:00Z",
+        "reactions": ["❤️"]
+      },
+      {
+        "id": 2,
+        "role": "assistant",
+        "content": "민수를 만났군요! 어떤 이야기를 나눴어요?",
+        "createdAt": "2026-04-01T10:00:01Z",
+        "reactions": []
+      }
+    ]
+  }
+}
+// Response 200 (format=text) — Content-Type: text/plain
+// 줄바꿈 구분 텍스트
+```
+
+**format enum**: `json` | `text`
+- json: 구조화된 JSON (위 형식)
+- text: 사람이 읽기 쉬운 텍스트 (타임스탬프 + 역할 + 내용)
+
+### GET /api/chat/export/stats (v4.2)
+
+내보내기 가능한 데이터 통계.
+
+```json
+// Response 200
+{
+  "totalMessages": 500,
+  "firstMessageAt": "2026-04-01T10:00:00Z",
+  "lastMessageAt": "2026-04-21T15:00:00Z",
+  "byRole": { "user": 250, "assistant": 250 }
+}
+```
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -2767,6 +2992,9 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 | INVALID_EMOJI | 400 | 허용되지 않은 이모지 | — |
 | REACTION_NOT_FOUND | 404 | 반응 없음 | — |
 | HIGHLIGHT_NOT_FOUND | 404 | 하이라이트 없음 | — |
+| NOT_ARCHIVED | 400 | 아카이브 상태가 아닌 메모리 | — |
+| SUGGESTION_NOT_FOUND | 404 | 병합 제안 없음 | — |
+| INVALID_KEEP_PERSON | 400 | keepPersonId가 제안에 속하지 않음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -2852,3 +3080,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v3.6.0 | 2026-04-21 | Chat Reactions — 메시지 이모지 반응 (autoceo-s30-R1) |
 | v3.7.0 | 2026-04-21 | People Groups — 인물 그룹 분류 + AI 추천 (autoceo-s30-R1) |
 | v3.8.0 | 2026-04-21 | Memory Highlights — AI 기간별 핵심 메모리 선별 (autoceo-s30-R1) |
+| v3.9.0 | 2026-04-21 | Chat Context Memory — 대화 맥락 자동 요약 + 주입 (autoceo-s31-R1) |
+| v4.0.0 | 2026-04-21 | Memory Archive — 오래된 메모리 아카이브 + 복원 (autoceo-s31-R1) |
+| v4.1.0 | 2026-04-21 | People Merge Suggestions — AI 중복 인물 탐지 + 병합 (autoceo-s31-R1) |
+| v4.2.0 | 2026-04-21 | Chat Export — 대화 내역 텍스트/JSON 내보내기 (autoceo-s31-R1) |

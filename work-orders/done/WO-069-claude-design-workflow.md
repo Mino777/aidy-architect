@@ -2,7 +2,7 @@
 
 **담당**: architect
 **우선순위**: P2
-**상태**: backlog
+**상태**: done
 
 ## 작업 내용
 
@@ -22,6 +22,6 @@
 - Claude Design 핸드오프 활용 가이드
 
 ## 완료 기준
-- [ ] docs/guides/claude-design-setup.md 존재
-- [ ] WO 템플릿에 목업 필드 추가
-- [ ] 핸드오프 워크플로 문서화
+- [x] docs/guides/claude-design-setup.md 존재
+- [x] WO 템플릿에 목업 필드 추가
+- [x] 핸드오프 워크플로 문서화

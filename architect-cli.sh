@@ -301,25 +301,42 @@ build_prompt() {
     local wo_filename=$2
 
     cat <<EOF
-너는 aidy-${target} 워커야. 아래 파일을 순서대로 읽고 작업을 시작해:
+작업 지시 (${wo_filename})
 
+## 컨텍스트 로드 (순서대로)
 1. ~/Develop/aidy-${target}/CLAUDE.md
-2. ~/Develop/aidy-architect/specs/api-contract.md
+2. ~/Develop/aidy-architect/specs/api-contract.md — 해당 섹션
 3. ~/Develop/aidy-architect/specs/conventions.md
 4. ~/Develop/aidy-architect/work-orders/in-progress/${wo_filename}
 5. ~/Develop/aidy-architect/gates/test-policy.md + gates/test-policy-${target}.md
 
-work-order의 '구현 요구사항'을 하나씩 구현하고, 완료되면 git commit해줘. 커밋 메시지는 한글로.
+---
+
+## 작업
+
+work-order의 '구현 요구사항'을 하나씩 구현해.
 목업이 있으면 (work-order의 **목업**: 필드) 해당 경로의 이미지를 참조하여 UI를 구현해.
 
-⚠️ 테스트 실행 증거 필수 (autoceo-s4 교훈):
-- 커밋 전 반드시 실제 테스트 실행하고 숫자 보고:
+### 완료 기준
+- [ ] 빌드 PASS
+- [ ] 응답 스키마가 api-contract 해당 섹션 필드와 일치
+- [ ] 테스트: happy path + 에러 케이스 커버
+- [ ] 테스트 실행 숫자 보고 (아래 명령 사용):
   - server: \`./gradlew test\` → "NN tests · 0 failures"
   - ios: \`xcodebuild test -workspace Aidy.xcworkspace -scheme Aidy -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest'\` → "Test run with NN tests passed"
   - android: \`./gradlew testDebugUnitTest\` → "NN tests · 0 failures"
+
+---
+
+## 제약
+- 금지: git push, 기존 Entity 구조 변경 (스펙에 명시된 경우 제외), 새 패키지 설치
+- 커밋: 한글 메시지, 1건당 파일 10개 이하
 - "빌드 통과" 만으로 "테스트 통과" 주장 금지
 - "no tests to run" 나오면 즉시 인프라 이슈 → architect에 보고
-- 커밋 메시지 또는 inbox 파일에 숫자 포함
+
+## 완료 보고
+모든 작업 완료 후:
+\`tmux send-keys -t aidy:0.0 '[${target} 완료]' Enter\`
 EOF
 }
 

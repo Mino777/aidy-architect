@@ -55,6 +55,20 @@ work-orders/
 3. `aidy-architect/work-orders/in-progress/` 에서 자기 담당 작업 확인
 4. 작업 완료 후 PR + 완료 보고
 
+### Advisor 자문 프로토콜
+워커가 설계 판단이 필요할 때 `[<worker> 자문요청]` 메시지가 도착한다.
+Architect는 즉시 응답해야 한다 (워커가 블로킹 대기 중, 5분 타임아웃).
+
+**처리 절차:**
+1. `./architect-cli.sh advise <worker>` — 자문 내용 확인
+2. `inbox/<worker>-advice.md` 에 답변 작성
+3. `./architect-cli.sh advise-reply <worker>` — 워커에게 전송
+
+**답변 원칙:**
+- 선택지 중 하나를 명확히 결정 + 이유 1줄
+- 스펙 변경이 필요하면 Architect가 직접 수정 후 답변
+- 판단 기록이 필요하면 `specs/decisions/` 에 ADR 작성
+
 ## 프로젝트 맵
 
 | 프로젝트 | 경로 | 스택 | 워커 역할 |

@@ -687,6 +687,46 @@ CRASHEOF
 
 # ─── 메인 라우터 ───
 
+advise() {
+    local target="$1"
+    local advise_file="$ARCH_DIR/inbox/${target}-advise.md"
+    local advice_file="$ARCH_DIR/inbox/${target}-advice.md"
+
+    if [[ ! -f "$advise_file" ]]; then
+        echo -e "${RED}[Advisor] ${target}-advise.md 없음${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}[Advisor] ${target} 자문 요청 수신${NC}"
+    echo "────────────────────────────────────"
+    cat "$advise_file"
+    echo "────────────────────────────────────"
+
+    # 답변 파일이 이미 있으면 전송
+    if [[ -f "$advice_file" ]]; then
+        echo -e "${GREEN}[Advisor] 답변 파일 발견 → ${target}에 전송${NC}"
+        tmux_send "$target" "[자문답변] ~/Develop/aidy-architect/inbox/${target}-advice.md 읽고 작업 재개해. 읽은 후 advise + advice 파일 모두 삭제."
+        return 0
+    fi
+
+    echo -e "${YELLOW}[Advisor] inbox/${target}-advice.md 에 답변을 작성하세요.${NC}"
+    echo -e "${YELLOW}  작성 후: ./architect-cli.sh advise-reply ${target}${NC}"
+}
+
+advise_reply() {
+    local target="$1"
+    local advise_file="$ARCH_DIR/inbox/${target}-advise.md"
+    local advice_file="$ARCH_DIR/inbox/${target}-advice.md"
+
+    if [[ ! -f "$advice_file" ]]; then
+        echo -e "${RED}[Advisor] ${target}-advice.md 없음 — 먼저 답변 파일을 작성하세요${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}[Advisor] ${target}에 답변 전송${NC}"
+    tmux_send "$target" "[자문답변] ~/Develop/aidy-architect/inbox/${target}-advice.md 읽고 작업 재개해. 읽은 후 advise + advice 파일 모두 삭제."
+}
+
 case "${1:-help}" in
     tmux-setup)  tmux_setup ;;
     send)        tmux_send "$2" "$3" ;;
@@ -699,6 +739,8 @@ case "${1:-help}" in
     restart-workers) restart_workers ;;
     watch-workers)   watch_workers "${2:-1800}" ;;
     crash-log)       crash_diagnose "$2" ;;
+    advise)          advise "$2" ;;
+    advise-reply)    advise_reply "$2" ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
     status)
@@ -731,6 +773,10 @@ case "${1:-help}" in
         echo ""
         echo "크래시 진단:"
         echo "  ./architect-cli.sh crash-log <target>                               — 크래시 원인 분류 + 로그 저장"
+        echo ""
+        echo "Advisor 자문:"
+        echo "  ./architect-cli.sh advise <target>                                  — 워커 자문 요청 확인 + 답변 전송"
+        echo "  ./architect-cli.sh advise-reply <target>                            — 답변 파일 작성 후 워커에게 전송"
         echo ""
         echo "Work Order:"
         echo "  ./architect-cli.sh wo <number>                                      — WO 활성화"

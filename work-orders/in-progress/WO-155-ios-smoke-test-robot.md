@@ -2,7 +2,7 @@
 
 **담당**: ios
 **우선순위**: P2
-**상태**: backlog
+**상태**: in-progress
 
 ## 배경
 뱅크샐러드 iOS팀의 통합 UI 테스트 전략 참고. Robot Pattern으로 화면별 재사용 가능한 테스트 헬퍼 구축 + 핵심 플로우 Smoke Test.

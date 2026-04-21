@@ -2,7 +2,7 @@
 
 **담당**: android
 **우선순위**: P2
-**상태**: in-progress
+**상태**: done
 
 ## 배경
 뱅크샐러드 iOS팀의 통합 UI 테스트 전략을 Android에도 동일하게 적용. Robot Pattern + Compose UI Test + 핵심 Smoke Test.

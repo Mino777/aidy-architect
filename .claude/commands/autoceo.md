@@ -153,7 +153,10 @@ npm run search -- "<이번 작업 키워드>" 3
 [서버 dispatch] → [다음 스펙 작성] → [서버 완료] → [클라 dispatch + 서버 Gate-1] → [클라 완료] → [클라 Gate-1]
 ```
 
-### Step 4: QA (Gate 검증)
+### Step 4: QA (Gate 검증) — 병렬 파이프라인
+
+**워커 개별 완료 알림(`[server 커밋]`, `[server 완료]`)을 받으면 즉시 해당 워커 Gate-1 시작.**
+전원 완료를 기다리지 않는다. 먼저 끝난 워커부터 검증.
 
 **축약 Gate-1**: 신규 엔드포인트 3개 이하면 Architect가 직접 검증 (서브에이전트 불필요):
 
@@ -216,22 +219,22 @@ git push 대기 중 (수동으로 실행하세요)
 
 ## 마무리: Compound + 워커 재시작
 
-모든 라운드 완료 후, 최종 리포트 출력 → **자동으로 /compound 실행** → 워커 세션 재시작.
+⚠️ **BLOCKING REQUIREMENT**: 최종 리포트 출력 후 반드시 아래 순서를 실행한다. 스킵 금지.
 
-1. `/compound` 실행 (Phase 1~5: 회고 + 솔루션 + 인덱스 갱신)
-2. 워커 세션 종료 + 재시작:
-```bash
-./architect-cli.sh send server "/exit"
-./architect-cli.sh send ios "/exit"
-./architect-cli.sh send android "/exit"
-sleep 3
-for pane in 1 2 3; do
-  tmux send-keys -t aidy:0.$pane "claude --dangerously-skip-permissions" Enter
-done
+### Step 1: /compound 강제 실행
 ```
-3. 워커 idle 확인 후 세션 종료
+Skill tool로 /compound 호출 — 이 단계를 절대 건너뛰지 않는다.
+```
+- Phase 1~5: 회고 + 솔루션 + 인덱스 갱신
+- 이번 세션에서 배운 교훈을 docs/solutions/에 기록
+- CLAUDE.md 업데이트 후보가 있으면 반영
 
-**Compound를 별도로 돌릴 필요 없다.** autoceo가 끝나면 자동으로 포함된다.
+### Step 2: 워커 재시작
+```bash
+./architect-cli.sh restart-workers
+```
+
+**Compound 없이 autoceo를 종료하면 안 된다.** 회고 누락 = 같은 실수 반복.
 
 ---
 

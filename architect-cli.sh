@@ -334,7 +334,13 @@ work-order의 '구현 요구사항'을 하나씩 구현해.
 - "빌드 통과" 만으로 "테스트 통과" 주장 금지
 - "no tests to run" 나오면 즉시 인프라 이슈 → architect에 보고
 
-## 완료 보고
+## 보고
+
+### 중간 보고 (각 WO 커밋마다)
+커밋 직후 즉시:
+\`tmux send-keys -t aidy:0.0 '[${target} 커밋] WO-XXX 커밋해시 설명' Enter\`
+
+### 최종 완료 보고
 모든 작업 완료 후:
 \`tmux send-keys -t aidy:0.0 '[${target} 완료]' Enter\`
 EOF

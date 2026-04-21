@@ -624,6 +624,67 @@ restart_workers() {
     echo -e "${GREEN}[완료]${NC} $ok_count/3 워커 재시작됨"
 }
 
+# ─── 크래시 진단 (FAIL 축 개선: 원인 분류 + MTTR 추적) ───
+
+crash_diagnose() {
+    local target=$1
+    local crash_dir="$ARCH_DIR/docs/crash-logs"
+    mkdir -p "$crash_dir"
+    local timestamp=$(date '+%Y-%m-%d_%H%M%S')
+    local log_file="$crash_dir/${timestamp}_${target}.md"
+
+    local pane_idx
+    pane_idx=$(get_pane_index "$target")
+    local tmux_target="$TMUX_SESSION:0.${pane_idx}"
+
+    # 1. pane 전체 캡처 (최대 500줄)
+    local pane_capture
+    pane_capture=$(tmux capture-pane -t "$tmux_target" -p -S -500 2>/dev/null || echo "(캡처 실패)")
+
+    # 2. 시스템 상태 수집
+    local swap_info mem_pressure claude_count
+    swap_info=$(sysctl -n vm.swapusage 2>/dev/null || echo "unknown")
+    mem_pressure=$(memory_pressure 2>/dev/null | head -5 || echo "unknown")
+    claude_count=$(ps aux | grep -c "[c]laude")
+
+    # 3. 원인 분류
+    local cause="UNKNOWN"
+    if echo "$pane_capture" | grep -qi "out of memory\|OOM\|killed"; then
+        cause="OOM"
+    elif echo "$pane_capture" | grep -qi "token\|context.*limit\|too long"; then
+        cause="TOKEN_OVERFLOW"
+    elif echo "$pane_capture" | grep -qi "rate limit\|429\|too many"; then
+        cause="RATE_LIMIT"
+    elif echo "$pane_capture" | grep -qi "network\|connection\|timeout\|ECONNRESET"; then
+        cause="NETWORK"
+    elif echo "$pane_capture" | grep -qi "error\|panic\|crash"; then
+        cause="ERROR"
+    elif echo "$pane_capture" | grep -qi "Tip:.*resume\|continue"; then
+        cause="SESSION_END"
+    fi
+
+    # 4. 로그 파일 작성
+    cat > "$log_file" << CRASHEOF
+# Crash Log: $target ($timestamp)
+
+## 원인 분류: $cause
+
+## 시스템 상태
+- Swap: $swap_info
+- Claude 인스턴스: ${claude_count}개
+- Memory Pressure: $(echo "$mem_pressure" | head -1)
+
+## Pane 캡처 (마지막 50줄)
+\`\`\`
+$(echo "$pane_capture" | tail -50)
+\`\`\`
+CRASHEOF
+
+    echo -e "${RED}[crash-log] $target 크래시 진단: $cause${NC}"
+    echo -e "${CYAN}  로그: $log_file${NC}"
+    echo "$cause"
+}
+
 # ─── 메인 라우터 ───
 
 case "${1:-help}" in
@@ -637,6 +698,7 @@ case "${1:-help}" in
     verify)      verify "${2:-all}" ;;
     restart-workers) restart_workers ;;
     watch-workers)   watch_workers "${2:-1800}" ;;
+    crash-log)       crash_diagnose "$2" ;;
     wo)          wo_activate "$2" ;;
     wo-done)     wo_complete "$2" ;;
     status)
@@ -666,6 +728,9 @@ case "${1:-help}" in
         echo ""
         echo "검증:"
         echo "  ./architect-cli.sh verify <server|ios|android|all>                  — 빌드+테스트 직접 검증"
+        echo ""
+        echo "크래시 진단:"
+        echo "  ./architect-cli.sh crash-log <target>                               — 크래시 원인 분류 + 로그 저장"
         echo ""
         echo "Work Order:"
         echo "  ./architect-cli.sh wo <number>                                      — WO 활성화"

@@ -1,6 +1,6 @@
 {
-  "totalQueries": 24,
-  "lastUpdated": "2026-04-20T16:50:44.605Z",
+  "totalQueries": 25,
+  "lastUpdated": "2026-04-21T02:27:21.869Z",
   "hits": {
     "docs/solutions/2026-04-17-worker-stall-detection-protocol": 3,
     "HANDOFF": 3,
@@ -30,7 +30,9 @@
     "docs/solutions/2026-04-19-autoceo-sprint-efficiency": 2,
     "docs/retros/autoceo-s9-round-retro": 1,
     "docs/solutions/2026-04-19-polling-token-optimization": 1,
-    "docs/worker-prompts/2026-04-19": 2,
-    "NEXT": 1
+    "docs/worker-prompts/2026-04-19": 3,
+    "NEXT": 2,
+    "docs/retros/s25-autoceo-compound-retro": 1,
+    "DESIGN": 1
   }
 }

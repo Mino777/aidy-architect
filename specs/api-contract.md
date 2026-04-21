@@ -1911,6 +1911,187 @@ AI가 인물의 취향, 관심사, 기념일을 분석하여 선물 아이디어
 
 ---
 
+## 5.23 Shared Memories (v3.2)
+
+특정 메모리를 공유 링크로 외부에 공유. 링크 접근 시 인증 불필요 (읽기 전용).
+공유 링크는 만료 시간 설정 가능.
+
+### POST /api/memories/{id}/share (v3.2)
+
+메모리 공유 링크 생성. 이미 공유 중이면 기존 링크 반환.
+
+```json
+// Request
+{ "expiresInHours": 168 }
+// Response 201
+{
+  "shareId": "abc123xyz",
+  "shareUrl": "/api/shared/abc123xyz",
+  "memoryId": 1,
+  "expiresAt": "2026-04-28T12:00:00Z",
+  "createdAt": "2026-04-21T12:00:00Z"
+}
+```
+- shareId: 12자 랜덤 URL-safe
+- expiresInHours: 기본 168 (7일), 최대 720 (30일)
+
+### GET /api/shared/{shareId} (v3.2)
+
+공유된 메모리 조회 (인증 불필요).
+
+```json
+// Response 200
+{
+  "memory": {
+    "content": "김민수가 이직 고민 중. 현재 회사 연봉 불만족.",
+    "category": "people",
+    "personName": "김민수",
+    "createdAt": "2026-04-15T10:00:00Z"
+  },
+  "sharedBy": "Jo",
+  "expiresAt": "2026-04-28T12:00:00Z"
+}
+// Error 404
+{ "error": "공유 링크가 만료되었거나 존재하지 않습니다.", "code": "SHARE_NOT_FOUND" }
+```
+
+### DELETE /api/memories/{id}/share (v3.2)
+
+공유 링크 해제 (즉시 만료).
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "공유 링크를 찾을 수 없습니다.", "code": "SHARE_NOT_FOUND" }
+```
+
+---
+
+## 5.24 Memory Tags (v3.3)
+
+사용자 정의 태그로 메모리 분류. 메모리당 최대 5개 태그.
+
+### GET /api/tags (v3.3)
+
+사용자의 전체 태그 목록 (사용 빈도순).
+
+```json
+// Response 200
+{
+  "tags": [
+    { "id": 1, "name": "중요", "color": "#FF5733", "count": 12 },
+    { "id": 2, "name": "팔로업", "color": "#33B5FF", "count": 8 }
+  ],
+  "totalCount": 5
+}
+```
+
+### POST /api/tags (v3.3)
+
+태그 생성.
+
+```json
+// Request
+{ "name": "중요", "color": "#FF5733" }
+// Response 201
+{ "id": 1, "name": "중요", "color": "#FF5733", "count": 0 }
+// Error 409
+{ "error": "이미 존재하는 태그입니다.", "code": "TAG_EXISTS" }
+```
+
+### DELETE /api/tags/{id} (v3.3)
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "태그를 찾을 수 없습니다.", "code": "TAG_NOT_FOUND" }
+```
+
+### POST /api/memories/{id}/tags (v3.3)
+
+메모리에 태그 추가.
+
+```json
+// Request
+{ "tagIds": [1, 2] }
+// Response 200
+{
+  "memoryId": 1,
+  "tags": [
+    { "id": 1, "name": "중요", "color": "#FF5733" },
+    { "id": 2, "name": "팔로업", "color": "#33B5FF" }
+  ]
+}
+// Error 400 (태그 5개 초과)
+{ "error": "메모리당 최대 5개 태그만 가능합니다.", "code": "TAG_LIMIT_EXCEEDED" }
+```
+
+### DELETE /api/memories/{id}/tags/{tagId} (v3.3)
+```json
+// Response 204 (No Content)
+```
+
+### GET /api/memories?tag={tagId} (v3.3)
+
+기존 GET /api/memories에 tag 쿼리 파라미터 추가. 특정 태그가 달린 메모리만 필터링.
+
+---
+
+## 5.25 AI Chat Suggestions (v3.4)
+
+대화 시작 시 AI가 현재 맥락(최근 메모리, 시간대, 인물 건강점수)을 분석하여 대화 주제 추천.
+
+### GET /api/chat/suggestions (v3.4)
+
+```json
+// Query: ?limit=5
+// Response 200
+{
+  "suggestions": [
+    {
+      "id": 1,
+      "type": "followup",
+      "text": "김민수 이직 건 어떻게 됐어?",
+      "reason": "2주 전 이직 고민 메모리가 있어요",
+      "relatedMemoryId": 42,
+      "personName": "김민수"
+    },
+    {
+      "id": 2,
+      "type": "reminder",
+      "text": "내일 엄마 생신이에요. 선물 준비했어?",
+      "reason": "내일 기념일이 등록되어 있어요",
+      "relatedMemoryId": null,
+      "personName": "엄마"
+    },
+    {
+      "id": 3,
+      "type": "exploration",
+      "text": "요즘 건강 관리 어떻게 하고 있어?",
+      "reason": "건강 카테고리 메모리가 2주째 없어요",
+      "relatedMemoryId": null,
+      "personName": null
+    }
+  ]
+}
+```
+
+**type enum**: `followup` | `reminder` | `exploration` | `check_in`
+- followup: 과거 메모리 후속 질문
+- reminder: 기념일/일정 리마인드
+- exploration: 오래 안 다룬 카테고리 탐색
+- check_in: 관계 건강점수 낮은 인물 안부
+
+### POST /api/chat/suggestions/{id}/use (v3.4)
+
+추천을 사용했음을 기록 (추천 품질 개선용).
+
+```json
+// Response 200
+{ "id": 1, "used": true, "usedAt": "2026-04-21T10:00:00Z" }
+```
+
+---
+
 ## 6. Settings (v0.7)
 
 사용자별 앱 설정. 서버에 저장하여 다중 기기 동기화 지원.
@@ -2270,6 +2451,10 @@ Relationship Timeline(v2.7)은 자동 수집이지만, Interaction Log는 사용
 | LINK_EXISTS | 409 | 관계 연결 이미 존재 | — |
 | LINK_NOT_FOUND | 404 | 관계 연결 없음 | — |
 | INTERACTION_NOT_FOUND | 404 | 상호작용 기록 없음 | — |
+| SHARE_NOT_FOUND | 404 | 공유 링크 없음/만료 | — |
+| TAG_EXISTS | 409 | 태그 이름 중복 | — |
+| TAG_NOT_FOUND | 404 | 태그 없음 | — |
+| TAG_LIMIT_EXCEEDED | 400 | 메모리당 태그 5개 초과 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -2348,3 +2533,6 @@ Retry-After: 30                // 재시도까지 대기 초
 | v2.9.0 | 2026-04-21 | Smart Notifications — AI 스마트 알림 생성/조회/무시 (autoceo-s28-R1) |
 | v3.0.0 | 2026-04-21 | Relationship Map — 인물 간 관계 그래프 (autoceo-s28-R1) |
 | v3.1.0 | 2026-04-21 | Interaction Log — 수동 상호작용 기록 (autoceo-s28-R1) |
+| v3.2.0 | 2026-04-21 | Shared Memories — 공유 링크로 메모리 외부 공유 (autoceo-s29-R1) |
+| v3.3.0 | 2026-04-21 | Memory Tags — 사용자 정의 태그 분류 (autoceo-s29-R1) |
+| v3.4.0 | 2026-04-21 | AI Chat Suggestions — 맥락 기반 대화 주제 추천 (autoceo-s29-R1) |

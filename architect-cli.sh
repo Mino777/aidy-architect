@@ -547,7 +547,7 @@ watch_workers() {
     local elapsed=0
     local workers=("server" "ios" "android")
 
-    # 개별 완료 추적 (0=작업중, 1=완료알림済)
+    # 개별 완료 추적 (0=미확인, 1=working확인됨, 2=완료알림済)
     # bash 3 호환: associative array 대신 변수명 방식
     local notified_server=0
     local notified_ios=0
@@ -556,8 +556,27 @@ watch_workers() {
     echo -e "${CYAN}[watch] 워커 완료 감시 시작 (timeout=${timeout}s, poll=${poll}s)${NC}"
     echo -e "${CYAN}  감시 대상: ${workers[*]}${NC}"
 
-    # 첫 dispatch 직후 working 진입 대기
-    sleep 10
+    # 첫 dispatch 직후 working 진입 대기 (최소 60초 — 오탐 방지)
+    echo -e "${CYAN}  working 진입 대기 (60s)...${NC}"
+    local warmup=0
+    while [ $warmup -lt 60 ]; do
+        sleep 10
+        warmup=$((warmup + 10))
+        # 모든 워커가 working 상태인지 확인
+        local all_working=true
+        for w in "${workers[@]}"; do
+            if is_pane_idle "$w" 2>/dev/null; then
+                all_working=false
+            else
+                # working 확인된 워커 마킹
+                eval "notified_${w}=1"
+            fi
+        done
+        if $all_working; then
+            echo -e "${GREEN}  전원 working 확인 (${warmup}s)${NC}"
+            break
+        fi
+    done
 
     while [ "$elapsed" -lt "$timeout" ]; do
         local all_idle=true
@@ -565,8 +584,16 @@ watch_workers() {
         for w in "${workers[@]}"; do
             # bash 3 호환: 변수명 방식으로 notified 체크
             local nvar="notified_${w}"
-            if [ "${!nvar}" -eq 1 ]; then
-                continue  # 이미 알림 보낸 워커는 스킵
+            if [ "${!nvar}" -eq 2 ]; then
+                continue  # 이미 완료 알림 보낸 워커는 스킵
+            fi
+            if [ "${!nvar}" -eq 0 ]; then
+                # 아직 working 확인 안 된 워커 — idle 판정하지 않음
+                if ! is_pane_idle "$w" 2>/dev/null; then
+                    eval "notified_${w}=1"  # working 확인
+                fi
+                all_idle=false
+                continue
             fi
 
             if is_pane_idle "$w"; then
@@ -578,7 +605,7 @@ watch_workers() {
                 fi
                 echo -e "${GREEN}[watch] $w 완료! (${elapsed}s) — $last_commit${NC}"
                 tmux send-keys -t "$TMUX_SESSION:0.0" "[$w 완료] $last_commit" Enter
-                eval "notified_${w}=1"
+                eval "notified_${w}=2"
             else
                 all_idle=false
             fi
@@ -607,7 +634,7 @@ watch_workers() {
     local pending=""
     for w in "${workers[@]}"; do
         local nvar="notified_${w}"
-        if [ "${!nvar}" -eq 0 ]; then
+        if [ "${!nvar}" -ne 2 ]; then
             pending="$pending $w"
         fi
     done

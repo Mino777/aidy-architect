@@ -505,13 +505,19 @@ verify() {
 # ─── 워커 완료 감시 (pub/sub 대체: bash가 폴링, Claude에 알림) ───
 # 사용법: ./architect-cli.sh watch-workers [timeout_sec]
 # - bash가 30초마다 tmux pane을 확인 (토큰 0)
-# - 전원 idle 되면 architect pane에 알림 전송
-# - architect Claude는 이 알림을 유저 메시지로 받아서 다음 단계 진행
+# - 개별 워커 완료 시 즉시 architect에 알림 (전원 대기 X)
+# - 전원 완료 시 최종 알림 전송
 watch_workers() {
     local timeout="${1:-1800}"
     local poll=30
     local elapsed=0
     local workers=("server" "ios" "android")
+
+    # 개별 완료 추적 (0=작업중, 1=완료알림済)
+    local -A notified
+    for w in "${workers[@]}"; do
+        notified[$w]=0
+    done
 
     echo -e "${CYAN}[watch] 워커 완료 감시 시작 (timeout=${timeout}s, poll=${poll}s)${NC}"
     echo -e "${CYAN}  감시 대상: ${workers[*]}${NC}"
@@ -521,33 +527,39 @@ watch_workers() {
 
     while [ "$elapsed" -lt "$timeout" ]; do
         local all_idle=true
-        local status_line=""
+
         for w in "${workers[@]}"; do
+            if [ "${notified[$w]}" -eq 1 ]; then
+                continue  # 이미 알림 보낸 워커는 스킵
+            fi
+
             if is_pane_idle "$w"; then
-                status_line="$status_line [$w:✅]"
+                # 개별 워커 완료 → 즉시 알림
+                local dir="$HOME/Develop/aidy-${w}"
+                local last_commit="unknown"
+                if [ -d "$dir" ]; then
+                    last_commit=$(cd "$dir" && git log --oneline -1 2>/dev/null || echo "unknown")
+                fi
+                echo -e "${GREEN}[watch] $w 완료! (${elapsed}s) — $last_commit${NC}"
+                tmux send-keys -t "$TMUX_SESSION:0.0" "[$w 완료] $last_commit" Enter
+                notified[$w]=1
             else
                 all_idle=false
-                status_line="$status_line [$w:⏳]"
             fi
         done
 
         if $all_idle; then
-            echo -e "${GREEN}[watch] 전원 idle! (${elapsed}s)${NC}"
+            echo -e "${GREEN}[watch] 전원 완료! (${elapsed}s)${NC}"
 
-            # 각 워커 커밋 상태 수집
+            # 최종 리포트
             local report=""
             for w in "${workers[@]}"; do
                 local dir="$HOME/Develop/aidy-${w}"
-                if [ -d "$dir" ]; then
-                    local last_commit
-                    last_commit=$(cd "$dir" && git log --oneline -1 2>/dev/null || echo "unknown")
-                    report="$report\n  $w: $last_commit"
-                fi
+                local last_commit
+                last_commit=$(cd "$dir" && git log --oneline -1 2>/dev/null || echo "unknown")
+                report="$report\n  $w: $last_commit"
             done
-
-            # architect pane에 알림 전송
-            local notify_msg="[워커 전원 완료] ${elapsed}초 소요${report}"
-            tmux send-keys -t "$TMUX_SESSION:0.0" "$notify_msg" Enter
+            tmux send-keys -t "$TMUX_SESSION:0.0" "[워커 전원 완료] ${elapsed}초 소요${report}" Enter
             return 0
         fi
 
@@ -555,8 +567,15 @@ watch_workers() {
         elapsed=$((elapsed + poll))
     done
 
-    echo -e "${YELLOW}[watch] timeout (${timeout}s) — 미완료 워커 있음${NC}"
-    tmux send-keys -t "$TMUX_SESSION:0.0" "[워커 감시 timeout] ${timeout}초 경과. 수동 확인 필요." Enter
+    # timeout — 미완료 워커 목록 포함
+    local pending=""
+    for w in "${workers[@]}"; do
+        if [ "${notified[$w]}" -eq 0 ]; then
+            pending="$pending $w"
+        fi
+    done
+    echo -e "${YELLOW}[watch] timeout (${timeout}s) — 미완료:${pending}${NC}"
+    tmux send-keys -t "$TMUX_SESSION:0.0" "[워커 감시 timeout] ${timeout}초 경과. 미완료:${pending}" Enter
     return 1
 }
 

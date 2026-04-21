@@ -3112,6 +3112,30 @@ Cache-Control: public, max-age=31536000
 
 ---
 
+## 8. Test Account (v4.6)
+
+UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
+
+### 테스트 계정 정보
+
+```
+email:    uitest@aidy.com
+password: AidyTest2026!
+nickname: Aidy 테스터
+```
+
+### 서버 시딩 조건
+- `application.yml`의 `aidy.test-account.enabled: true` (기본 false, 테스트 프로파일에서만 true)
+- 서버 시작 시 `ApplicationRunner`로 계정 존재 여부 확인 → 없으면 signup 로직 호출
+- 프로덕션에서는 절대 시딩하지 않음
+
+### 클라이언트 UITest 사용
+- iOS: `UITestHelper`에서 이 계정으로 로그인
+- Android: `UITestBase`에서 이 계정으로 로그인
+- 하드코딩 OK (테스트 전용, 환경변수 불필요)
+
+---
+
 ## 9. Health
 
 ### GET /api/health
@@ -3274,3 +3298,4 @@ Retry-After: 30                // 재시도까지 대기 초
 | v4.3.0 | 2026-04-21 | Onboarding Progress — 첫 사용자 튜토리얼 진행률 추적 (autoceo-s32-R1) |
 | v4.4.0 | 2026-04-21 | Home Dashboard — 메인 화면 통합 브리핑 (autoceo-s32-R1) |
 | v4.5.0 | 2026-04-21 | Memory Media — 메모리 이미지 첨부 (autoceo-s32-R1) |
+| v4.6.0 | 2026-04-22 | Test Account — UI 테스트 전용 어드민 계정 시딩 (ingest) |

@@ -2,7 +2,7 @@
 
 **담당**: android
 **우선순���**: P2
-**상태**: backlog
+**상태**: in-progress
 
 ## 구현 요구사항
 

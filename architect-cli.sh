@@ -608,22 +608,55 @@ restart_workers() {
     done
     echo -e "  ${GREEN}종료 확인 (${wait_count}초)${NC}"
 
-    # 3단계: 재시작
+    # 3단계: 재시작 전 pane 완전 정리
     for i in 0 1 2; do
         local pane=${panes[$i]}
         local worker=${workers[$i]}
         local tmux_target="$TMUX_SESSION:0.${pane}"
 
-        # 혹시 남은 텍스트 정리
+        # 남은 claude 프로세스 강제 종료 (pane의 child processes)
+        local pane_pid
+        pane_pid=$(tmux display-message -t "$tmux_target" -p '#{pane_pid}' 2>/dev/null)
+        if [ -n "$pane_pid" ]; then
+            # pane shell의 자식 프로세스 중 claude 종료
+            pkill -P "$pane_pid" -f "claude" 2>/dev/null || true
+        fi
+
+        # 잔여 입력/출력 정리
         tmux send-keys -t "$tmux_target" C-c 2>/dev/null || true
         sleep 0.5
-        tmux send-keys -t "$tmux_target" "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions" Enter
-        echo -e "  ${GREEN}[$worker]${NC} Claude 재시작됨"
+        tmux send-keys -t "$tmux_target" C-c 2>/dev/null || true
+        sleep 0.5
+
+        # shell 프롬프트 확인 — 프롬프트가 나올 때까지 대기 (최대 5초)
+        local shell_wait=0
+        while [ $shell_wait -lt 5 ]; do
+            local check
+            check=$(tmux capture-pane -t "$tmux_target" -p 2>/dev/null | tail -2)
+            if echo "$check" | grep -qE "[%\$] *$"; then
+                break
+            fi
+            sleep 1
+            shell_wait=$((shell_wait + 1))
+        done
+
+        echo -e "  ${CYAN}[$worker]${NC} pane 정리 완료 (${shell_wait}초)"
     done
 
-    # 4단계: 시작 확인 (최대 15초)
+    # 4단계: 재시작 (pane 정리 후)
+    for i in 0 1 2; do
+        local pane=${panes[$i]}
+        local worker=${workers[$i]}
+        local tmux_target="$TMUX_SESSION:0.${pane}"
+
+        tmux send-keys -t "$tmux_target" "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions" Enter
+        echo -e "  ${GREEN}[$worker]${NC} Claude 재시작 명령 전송"
+        sleep 2  # 각 워커 간 간격 (동시 시작 방지)
+    done
+
+    # 5단계: 시작 확인 (최대 20초)
     echo -e "  ${CYAN}시작 확인 중...${NC}"
-    sleep 10
+    sleep 15
     local ok_count=0
     for i in 0 1 2; do
         local pane=${panes[$i]}

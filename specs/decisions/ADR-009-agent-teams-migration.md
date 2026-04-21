@@ -1,6 +1,6 @@
 # ADR-009: Agent Teams 마이그레이션 로드맵
 
-## 상태: PROPOSED (실험 단계 — Agent Teams가 GA되면 실행)
+## 상태: ACCEPTED (하이브리드 모델 — 즉시 도입)
 
 ## 컨텍스트
 
@@ -26,39 +26,56 @@ Claude Code Agent Teams (실험적)은 네이티브 멀티에이전트를 지원
 | 세션 재개 | `/exit` + 재시작 | 미지원 (제한) |
 | 토큰 비용 | 독립 세션 (각자 컨텍스트) | Lead에 추가 오버헤드 |
 
-## 결정
+## 결정: 하이브리드 모델 (즉시 도입)
 
-**Phase 1 (현재)**: tmux 기반 유지 + Anthropic 공식 패턴 개별 도입
-- Advisor 자문 프로토콜 (도입 완료)
-- Hook 자동 Gate-1 (도입 완료)
-- Worktree 격리 (도입 완료)
+Architect ↔ Worker는 tmux 유지, **Worker 내부에서 Agent Teams 사용**.
 
-**Phase 2 (Agent Teams GA 시)**: 점진적 전환
-- Lead = Architect 역할
-- Teammates = Server/iOS/Android 워커
-- WO 파일 시스템 → 공유 태스크 목록으로 전환
-- inbox 프로토콜 → 직접 메시징으로 전환
-
-**Phase 3 (안정화 후)**: tmux 레이어 완전 제거
-- `architect-cli.sh send` → Agent Teams 네이티브 메시지
-- `watch-workers` → 네이티브 완료 알림
-- `preflight` 등 시스템 점검은 유지
-
-## 전환 조건 (Phase 2 시작 기준)
-
-- [ ] Agent Teams가 GA (experimental 해제)
-- [ ] 세션 재개 지원
-- [ ] 파일 충돌 방지 메커니즘 내장
-- [ ] 토큰 오버헤드가 tmux 대비 20% 이내
-
-## 호환 레이어
-
-전환 기간 동안 `architect-cli.sh`가 두 모드를 지원:
-```bash
-# 환경변수로 모드 선택
-AIDY_AGENT_MODE=tmux   # 기본값 (현재)
-AIDY_AGENT_MODE=teams  # Agent Teams 모드
 ```
+Architect (tmux 오케스트레이션)
+  ├── Server 워커 ← Agent Teams (같은 repo 내 병렬)
+  │     ├── Teammate: Entity + Migration
+  │     ├── Teammate: Service + Controller
+  │     └── Teammate: Tests
+  │
+  ├── iOS 워커 ← Agent Teams
+  │     ├── Teammate: Model + Client
+  │     ├── Teammate: Feature (TCA)
+  │     └── Teammate: View + Tests
+  │
+  └── Android 워커 ← Agent Teams
+        ├── Teammate: Data layer
+        ├── Teammate: ViewModel
+        └── Teammate: UI + Tests
+```
+
+**왜 하이브리드인가:**
+- Agent Teams = 단일 repo 내 병렬에 최적 → 각 워커가 자기 repo 안에서 팀 운영
+- Architect ↔ Worker = 프로젝트 분리형 → tmux가 더 효율적
+- 실험 단계 리스크가 워커 1개로 제한 (폭발 반경 최소)
+
+**기대 효과:**
+- WO 1개 처리 시간: 10분 → 4-5분 (레이어별 병렬)
+- 순차 의존성(Entity→Service→Controller)은 Teams가 자동 조율
+
+**활성화:**
+```bash
+# 워커 세션 시작 시 환경변수 추가
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
+```
+
+## 폴백 전략
+
+Worker 내부 Agent Teams가 불안정할 경우:
+- 환경변수 제거 → 기존 단일 워커 모드로 즉시 복귀
+- Architect 측 변경 불필요 (tmux dispatch는 동일)
+
+## Architect 레벨 전환 조건 (tmux → Agent Teams 완전 전환)
+
+Architect ↔ Worker 간 통신까지 Agent Teams로 전환하는 조건:
+- [ ] Agent Teams가 GA (experimental 해제)
+- [ ] 멀티 repo 지원
+- [ ] 세션 재개 지원
+- [ ] 토큰 오버헤드가 tmux 대비 20% 이내
 
 ## 왜 현재 tmux가 Agent Teams보다 효율적인가
 

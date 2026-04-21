@@ -600,7 +600,7 @@ restart_workers() {
         # 혹시 남은 텍스트 정리
         tmux send-keys -t "$tmux_target" C-c 2>/dev/null || true
         sleep 0.5
-        tmux send-keys -t "$tmux_target" "claude --dangerously-skip-permissions" Enter
+        tmux send-keys -t "$tmux_target" "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions" Enter
         echo -e "  ${GREEN}[$worker]${NC} Claude 재시작됨"
     done
 

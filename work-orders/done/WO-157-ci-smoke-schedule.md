@@ -2,7 +2,7 @@
 
 **담당**: server
 **우선순위**: P3
-**상태**: backlog
+**상태**: done
 
 ## 배경
 뱅크샐러드는 Smoke Test를 GitHub Actions로 4시간마다 실행. Aidy는 daily (매일 06:00 KST)로 시작.

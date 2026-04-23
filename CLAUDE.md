@@ -204,5 +204,15 @@ Key routing rules:
 - Design system, brand → invoke design-consultation
 - Visual audit, design polish → invoke design-review
 - Architecture review → invoke plan-eng-review
-- Save progress, checkpoint, resume → invoke checkpoint
+- Save progress, resume later → invoke context-save
+- Restore saved context, pick up where I left off → invoke context-restore
 - Code quality, health check → invoke health
+- 멀티에이전트 풀 자동 스프린트 루프 → invoke autoceo
+- WO 완료 후 복리형 지식 축적, 회고 → invoke compound
+- 특정 도메인 전문가 자문, 에페메럴 consultant 소환 → invoke consult
+- 다른 세션(워커) 결과물 크로스 검증 → invoke cross-session-review
+- 워커에게 Work Order 전송, 허브→워커 비동기 지시 → invoke dispatch
+- 스펙 준수 검증 (워커 PR/커밋 직후 1차 게이트) → invoke gate-1
+- 통합 검증 (머지 직전 2차 게이트) → invoke gate-2
+- 외부 기술/패턴을 Aidy 프로젝트에 흡수 → invoke ingest
+- 전체 워커 상태 모니터링 대시보드 → invoke monitor

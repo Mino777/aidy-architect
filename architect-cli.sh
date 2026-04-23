@@ -373,6 +373,35 @@ wo_activate() {
     echo -e "CLI 모드:  ${CYAN}./architect-cli.sh run $target \"...\"${NC}"
 }
 
+wo_dispatch() {
+    local wo_num=$1
+    local wo_file
+
+    # in-progress 먼저 확인, 없으면 backlog에서 activate
+    wo_file=$(find "$WO_DIR/in-progress" -name "WO-${wo_num}*" 2>/dev/null | head -1)
+    if [ -z "$wo_file" ]; then
+        wo_file=$(find "$WO_DIR/backlog" -name "WO-${wo_num}*" 2>/dev/null | head -1)
+        if [ -z "$wo_file" ]; then
+            echo -e "${RED}WO-${wo_num}을 찾을 수 없습니다.${NC}"
+            exit 1
+        fi
+        local filename
+        filename=$(basename "$wo_file")
+        mv "$wo_file" "$WO_DIR/in-progress/$filename"
+        sed -i '' 's/\*\*상태\*\*: backlog/**상태**: in-progress/' "$WO_DIR/in-progress/$filename"
+        wo_file="$WO_DIR/in-progress/$filename"
+        echo -e "${GREEN}[WO-${wo_num}] backlog → in-progress${NC}"
+    fi
+
+    local filename target prompt
+    filename=$(basename "$wo_file")
+    target=$(grep "^\*\*담당\*\*:" "$wo_file" | sed 's/.*: //')
+    prompt=$(build_prompt "$target" "$filename")
+
+    tmux_send "$target" "$prompt"
+    echo -e "${GREEN}[WO-${wo_num}] → $target 전송 완료${NC}"
+}
+
 wo_complete() {
     local wo_num=$1
     local wo_file=$(find "$WO_DIR/in-progress" -name "WO-${wo_num}*" 2>/dev/null | head -1)
@@ -540,6 +569,32 @@ verify() {
             ;;
     esac
     return $failed
+}
+
+# ─── Gate 검증 결과 gates/reviews 자동 저장 ───
+
+gate_log() {
+    local target="${1:-all}"
+    local wo_num="${2:-}"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d_%H%M%S')
+    mkdir -p "$ARCH_DIR/gates/reviews"
+
+    local wo_label="adhoc"
+    if [ -n "$wo_num" ]; then
+        local wo_file
+        wo_file=$(find "$WO_DIR/in-progress" "$WO_DIR/done" -name "WO-${wo_num}*" 2>/dev/null | head -1 || true)
+        [ -n "$wo_file" ] && wo_label=$(basename "$wo_file" .md)
+    fi
+
+    local log_file="$ARCH_DIR/gates/reviews/gate-${target}-${wo_label}-${timestamp}.md"
+
+    {
+        printf '# Gate Review — %s / %s\n날짜: %s\n\n' "$target" "$wo_label" "$(date '+%Y-%m-%d %H:%M:%S')"
+        verify "$target" 2>&1
+    } | tee "$log_file"
+
+    echo -e "${GREEN}[gate-log] 저장: $log_file${NC}"
 }
 
 # ─── 워커 완료 감시 (pub/sub 대체: bash가 폴링, Claude에 알림) ───
@@ -891,7 +946,9 @@ case "${1:-help}" in
     advise)          advise "$2" ;;
     advise-reply)    advise_reply "$2" ;;
     wo)          wo_activate "$2" ;;
+    dispatch)    wo_dispatch "$2" ;;
     wo-done)     wo_complete "$2" ;;
+    gate-log)    gate_log "${2:-all}" "${3:-}" ;;
     status)
         echo -e "${GREEN}[Work Orders]${NC}"
         echo -e "  ${YELLOW}Backlog:${NC}"
@@ -917,9 +974,6 @@ case "${1:-help}" in
         echo "시스템:"
         echo "  ./architect-cli.sh preflight                                        — Swap/메모리/인스턴스 점검"
         echo ""
-        echo "검증:"
-        echo "  ./architect-cli.sh verify <server|ios|android|all>                  — 빌드+테스트 직접 검증"
-        echo ""
         echo "크래시 진단:"
         echo "  ./architect-cli.sh crash-log <target>                               — 크래시 원인 분류 + 로그 저장"
         echo ""
@@ -928,9 +982,14 @@ case "${1:-help}" in
         echo "  ./architect-cli.sh advise-reply <target>                            — 답변 파일 작성 후 워커에게 전송"
         echo ""
         echo "Work Order:"
-        echo "  ./architect-cli.sh wo <number>                                      — WO 활성화"
+        echo "  ./architect-cli.sh wo <number>                                      — WO 활성화 (프롬프트 출력만)"
+        echo "  ./architect-cli.sh dispatch <number>                                — WO 활성화 + 워커 tmux 자동 전송"
         echo "  ./architect-cli.sh wo-done <number>                                 — WO 완료"
         echo "  ./architect-cli.sh status                                           — 현황"
+        echo ""
+        echo "Gate 검증:"
+        echo "  ./architect-cli.sh verify <server|ios|android|all>                  — 빌드+테스트 직접 검증"
+        echo "  ./architect-cli.sh gate-log [target] [wo-number]                    — 검증 결과 gates/reviews 자동 저장"
         echo ""
         echo "환경 변수:"
         echo "  AIDY_SEND_429_DETECT  (default 1)   — 429 감지 활성/비활성"

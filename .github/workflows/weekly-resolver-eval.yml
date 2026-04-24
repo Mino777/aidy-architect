@@ -1,0 +1,116 @@
+name: "🎯 Weekly Resolver Eval"
+
+# Skillify Step 7 회귀 감시.
+# scripts/resolver-eval.mjs로 CLAUDE.md ## Skill routing ↔ golden set 정확도를
+# 매주 측정. 임계 아래로 떨어지면 Issue 생성.
+
+on:
+  schedule:
+    # 매주 월요일 09:30 KST (UTC 00:30)
+    - cron: "30 0 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "CLAUDE.md"
+      - "data/resolver-eval-cases.json"
+      - "scripts/resolver-eval.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  # accuracy가 이 값 미만으로 떨어지면 Issue 생성.
+  # 100% 확보 직후라 현실적 임계는 80%. 회귀를 빨리 잡고자 높게 설정.
+  THRESHOLD: 80
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run resolver eval
+        id: eval
+        continue-on-error: true
+        run: |
+          set +e
+          RESULT=$(node scripts/resolver-eval.mjs --json)
+          EVAL_EXIT=$?
+          set -e
+
+          echo "$RESULT" > /tmp/eval-result.json
+          ACCURACY=$(echo "$RESULT" | jq -r '.accuracy')
+          PASSED=$(echo "$RESULT" | jq -r '.passed')
+          TOTAL=$(echo "$RESULT" | jq -r '.cases')
+
+          echo "accuracy=$ACCURACY" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "eval_exit=$EVAL_EXIT" >> $GITHUB_OUTPUT
+
+          echo "정확도: ${ACCURACY}% (${PASSED}/${TOTAL})"
+
+      - name: Create regression issue
+        if: fromJSON(steps.eval.outputs.accuracy) < env.THRESHOLD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          RESULT=$(cat /tmp/eval-result.json)
+          ACCURACY=${{ steps.eval.outputs.accuracy }}
+          PASSED=${{ steps.eval.outputs.passed }}
+          TOTAL=${{ steps.eval.outputs.total }}
+
+          # 실패 케이스 목록
+          FAILS=$(echo "$RESULT" | jq -r '.results[] | select(.pass == false) | "- `\(.intent)` → expected=`\(.expected // "(none)")` / got=`\(.predicted)` (score \(.score))"')
+
+          BODY=$(cat <<EOF
+          ## 🔴 Resolver eval 정확도 회귀 ($DATE)
+
+          **정확도**: ${ACCURACY}% (${PASSED}/${TOTAL}) — 임계 ${{ env.THRESHOLD }}% 미달
+
+          ### 실패 케이스
+
+          $FAILS
+
+          ### 조치
+
+          1. \`CLAUDE.md\` '## Skill routing' 섹션 한국어 키워드 보강
+          2. 또는 \`data/resolver-eval-cases.json\` 케이스 현실성 재검토
+          3. \`npm run eval:resolver\` 로컬 재측정 후 PR
+
+          ---
+          자동 감사: 매주 월요일 09:30 KST + CLAUDE.md / cases.json / resolver-eval.mjs 변경 시
+          EOF
+          )
+
+          EXISTING=$(gh issue list --label "resolver-eval" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --title "🔴 Resolver eval ${ACCURACY}% 회귀 ($DATE)" --body "$BODY"
+            echo "✅ Issue #$EXISTING 업데이트"
+          else
+            gh issue create \
+              --title "🔴 Resolver eval ${ACCURACY}% 회귀 ($DATE)" \
+              --body "$BODY" \
+              --label "resolver-eval"
+          fi
+
+      - name: Close issue if recovered
+        if: fromJSON(steps.eval.outputs.accuracy) >= env.THRESHOLD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --label "resolver-eval" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --comment "✅ 정확도 ${{ steps.eval.outputs.accuracy }}% 복구 — 자동 close"
+            echo "✅ Issue #$EXISTING close"
+          else
+            echo "✅ 임계 ${{ env.THRESHOLD }}% 이상 유지 (accuracy ${{ steps.eval.outputs.accuracy }}%)"
+          fi

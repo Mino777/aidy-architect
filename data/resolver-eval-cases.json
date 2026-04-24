@@ -1,0 +1,63 @@
+{
+  "$schema": "inline",
+  "description": "Skillify Step 7 — aidy-architect resolver routing eval golden set. 아키텍처/플래닝 허브 워커 특성상 설계·리뷰·회고 중심. Harness Journal 028 playbook.",
+  "version": "0.1",
+  "updated": "2026-04-24",
+  "cases": [
+    {
+      "intent": "이거 배포 진행해줘",
+      "expectedSkill": "ship",
+      "notes": "배포/push 컨텍스트"
+    },
+    {
+      "intent": "버그 같은데 뭐가 문제지",
+      "expectedSkill": "investigate",
+      "notes": "원인 조사"
+    },
+    {
+      "intent": "500 에러 난다 봐줘",
+      "expectedSkill": "investigate",
+      "notes": "에러/500 → investigate"
+    },
+    {
+      "intent": "코드 PR 리뷰해줘",
+      "expectedSkill": "review",
+      "notes": "일반 리뷰"
+    },
+    {
+      "intent": "이거 QA 테스트해보자",
+      "expectedSkill": "qa",
+      "notes": "QA 트리거"
+    },
+    {
+      "intent": "이 아이디어 빌드할 가치 있을까",
+      "expectedSkill": "office-hours",
+      "notes": "아이디어 타당성"
+    },
+    {
+      "intent": "이번에 머지된 거 README 반영",
+      "expectedSkill": "document-release",
+      "notes": "릴리스 후 문서"
+    },
+    {
+      "intent": "스프린트 정리하자 회고 쓰자",
+      "expectedSkill": "compound",
+      "notes": "복리형 지식 축적"
+    },
+    {
+      "intent": "자동으로 풀 스프린트 돌려봐",
+      "expectedSkill": "autoceo",
+      "notes": "풀 자동 개발 루프"
+    },
+    {
+      "intent": "새 기능 브랜치 하나 파서 시작하자",
+      "expectedSkill": "wt-branch",
+      "notes": "안전한 분기 — worktree 기반"
+    },
+    {
+      "intent": "오늘 저녁 뭐 먹을까",
+      "expectedSkill": null,
+      "notes": "무관한 잡담 — routing 거부"
+    }
+  ]
+}

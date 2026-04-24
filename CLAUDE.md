@@ -194,12 +194,12 @@ tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
 The skill has specialized workflows that produce better results than ad-hoc answers.
 
 Key routing rules:
-- Product ideas, "is this worth building", brainstorming → invoke office-hours
-- Bugs, errors, "why is this broken", 500 errors → invoke investigate
-- Ship, deploy, push, create PR → invoke ship
-- QA, test the site, find bugs → invoke qa
-- Code review, check my diff → invoke review
-- Update docs after shipping → invoke document-release
+- Product ideas, "is this worth building", brainstorming, 아이디어 브레인스토밍 빌드 가치 고민 → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors, 버그 에러 문제 원인 크래시 디버깅 → invoke investigate
+- Ship, deploy, push, create PR, 배포 푸시 릴리스 진행 → invoke ship
+- QA, test the site, find bugs, QA 테스트 → invoke qa
+- Code review, check my diff, 코드 리뷰 PR 리뷰 diff 리뷰 검토 → invoke review
+- Update docs after shipping, 릴리스 후 문서 업데이트 문서화 머지 후 README 반영 → invoke document-release
 - Weekly retro → invoke retro
 - Design system, brand → invoke design-consultation
 - Visual audit, design polish → invoke design-review
@@ -207,8 +207,9 @@ Key routing rules:
 - Save progress, resume later → invoke context-save
 - Restore saved context, pick up where I left off → invoke context-restore
 - Code quality, health check → invoke health
-- 멀티에이전트 풀 자동 스프린트 루프 → invoke autoceo
-- WO 완료 후 복리형 지식 축적, 회고 → invoke compound
+- 멀티에이전트 풀 자동 개발 루프 자동화 → invoke autoceo
+- WO 완료 후 복리형 지식 축적, 스프린트 정리 회고 컴파운드 → invoke compound
+- 새 작업 시작, 안전한 브랜치 분기, worktree 생성 → invoke wt-branch
 - 특정 도메인 전문가 자문, 에페메럴 consultant 소환 → invoke consult
 - 다른 세션(워커) 결과물 크로스 검증 → invoke cross-session-review
 - 워커에게 Work Order 전송, 허브→워커 비동기 지시 → invoke dispatch

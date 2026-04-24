@@ -2,7 +2,7 @@
 
 **담당**: android
 **우선순위**: P4
-**상태**: backlog
+**상태**: done
 **스펙**: api-contract.md §5.37
 
 ## 구현 요구사항

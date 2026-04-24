@@ -3112,6 +3112,192 @@ Cache-Control: public, max-age=31536000
 
 ---
 
+## 5.37 User Avatar (v4.7)
+
+프로필 사진 업로드/조회/삭제. Memory Media (v4.5) 패턴 재사용, 유저당 1장.
+
+### POST /api/auth/avatar (v4.7)
+
+```
+Content-Type: multipart/form-data
+- file: (binary, max 2MB, image/jpeg | image/png | image/webp)
+```
+
+```json
+// Response 200
+{
+  "avatarUrl": "/api/auth/avatar/u_1_abc123.jpg",
+  "thumbnailUrl": "/api/auth/avatar/u_1_abc123_thumb.jpg",
+  "updatedAt": "2026-04-24T12:00:00Z"
+}
+// Error 400
+{ "error": "지원하지 않는 파일 형식입니다.", "code": "INVALID_MEDIA_TYPE" }
+// Error 400
+{ "error": "파일 크기가 2MB를 초과합니다.", "code": "MEDIA_TOO_LARGE" }
+```
+- 기존 아바타가 있으면 교체 (이전 파일 삭제)
+- 서버에서 200x200 썸네일 자동 생성
+
+### GET /api/auth/avatar (v4.7)
+
+```json
+// Response 200
+{
+  "avatarUrl": "/api/auth/avatar/u_1_abc123.jpg",
+  "thumbnailUrl": "/api/auth/avatar/u_1_abc123_thumb.jpg",
+  "updatedAt": "2026-04-24T12:00:00Z"
+}
+// Response 200 (아바타 없음)
+{
+  "avatarUrl": null,
+  "thumbnailUrl": null,
+  "updatedAt": null
+}
+```
+
+### DELETE /api/auth/avatar (v4.7)
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "아바타가 설정되지 않았습니다.", "code": "AVATAR_NOT_FOUND" }
+```
+
+### GET /api/auth/avatar/{filename} (v4.7)
+
+이미지 파일 직접 서빙.
+
+```
+Response: binary (image/jpeg, image/png, image/webp)
+Cache-Control: public, max-age=31536000
+```
+
+**기존 API 확장:**
+- `POST /api/auth/login`, `POST /api/auth/signup`, `POST /api/auth/refresh` 응답에 `avatarUrl` 필드 추가 (nullable string)
+
+---
+
+## 5.38 Advanced Search Filters (v4.8)
+
+GET /api/search에 날짜 범위, 인물, 카테고리 필터 추가.
+
+### GET /api/search (v4.8 확장)
+
+```
+// Query parameters (기존 q + 신규 필터)
+?q=점심
+&from=2026-04-01         (optional, ISO date)
+&to=2026-04-24           (optional, ISO date)
+&person=김팀장            (optional, normalizedName)
+&category=finance         (optional, memory category)
+&type=memories            (optional: chat | memories | people, 미지정 시 전체)
+&sort=relevance           (optional: relevance | newest | oldest, default relevance)
+&limit=20                 (optional, default 10, max 50)
+&offset=0                 (optional, default 0)
+```
+
+```json
+// Response 200
+{
+  "query": "점심",
+  "filters": {
+    "from": "2026-04-01",
+    "to": "2026-04-24",
+    "person": "김팀장",
+    "category": "finance",
+    "type": "memories",
+    "sort": "relevance"
+  },
+  "results": {
+    "chat": [],
+    "memories": [
+      {
+        "id": 42,
+        "category": "finance",
+        "title": "점심 지출",
+        "content": "12,000원 지출",
+        "pinned": false,
+        "personName": "김팀장",
+        "createdAt": "2026-04-15T22:00:00Z"
+      }
+    ],
+    "people": []
+  },
+  "counts": { "chat": 0, "memories": 1, "people": 0, "total": 1 },
+  "pagination": { "offset": 0, "limit": 20, "hasMore": false }
+}
+```
+- `from`/`to`: createdAt 범위 필터 (inclusive)
+- `person`: Memory의 연관 인물 이름으로 필터 (normalizedName LIKE)
+- `category`: Memory 카테고리 정확 일치
+- `type`: 특정 타입만 검색 (미지정 시 전체)
+- `sort`: relevance(기본, 키워드 매칭 우선), newest, oldest
+- 기존 v0.6 응답과 하위 호환: 신규 필드는 optional, 기존 필드 유지
+- `q`가 빈 문자열이면서 다른 필터가 있으면 필터만으로 검색 (browse 모드)
+- `q`도 없고 필터도 없으면 400 VALIDATION_ERROR
+
+---
+
+## 5.39 Activity Heatmap (v4.9)
+
+월간/연간 활동 히트맵 데이터. GitHub contributions 스타일.
+
+### GET /api/activity/heatmap (v4.9)
+
+```
+// Query: ?year=2026&month=4 (optional, default 현재 연월)
+// month 미지정 시 연간 데이터 반환
+```
+
+```json
+// Response 200 (월간)
+{
+  "year": 2026,
+  "month": 4,
+  "days": [
+    { "date": "2026-04-01", "chatCount": 3, "memoryCount": 5, "total": 8, "level": 2 },
+    { "date": "2026-04-02", "chatCount": 0, "memoryCount": 0, "total": 0, "level": 0 },
+    { "date": "2026-04-03", "chatCount": 7, "memoryCount": 12, "total": 19, "level": 4 }
+  ],
+  "summary": {
+    "totalDays": 30,
+    "activeDays": 22,
+    "totalChats": 89,
+    "totalMemories": 156,
+    "maxDayTotal": 19,
+    "currentStreak": 7,
+    "longestStreak": 14
+  }
+}
+```
+
+```json
+// Response 200 (연간, month 미지정)
+{
+  "year": 2026,
+  "month": null,
+  "days": [
+    { "date": "2026-01-01", "chatCount": 2, "memoryCount": 3, "total": 5, "level": 1 }
+  ],
+  "summary": {
+    "totalDays": 365,
+    "activeDays": 180,
+    "totalChats": 890,
+    "totalMemories": 1560,
+    "maxDayTotal": 25,
+    "currentStreak": 7,
+    "longestStreak": 30
+  }
+}
+```
+- `level`: 0~4 (0=비활동, 1=low, 2=medium, 3=high, 4=very high)
+- level 기준: 0=0, 1=1~quartile1, 2=q1~median, 3=median~q3, 4=q3~max
+- 연간 데이터: 해당 연도 1/1~12/31 (미래 날짜 제외)
+- `currentStreak`: 오늘부터 역산 연속 활동일
+- `longestStreak`: 해당 기간 내 최장 연속 활동일
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -3299,3 +3485,6 @@ Retry-After: 30                // 재시도까지 대기 초
 | v4.4.0 | 2026-04-21 | Home Dashboard — 메인 화면 통합 브리핑 (autoceo-s32-R1) |
 | v4.5.0 | 2026-04-21 | Memory Media — 메모리 이미지 첨부 (autoceo-s32-R1) |
 | v4.6.0 | 2026-04-22 | Test Account — UI 테스트 전용 어드민 계정 시딩 (ingest) |
+| v4.7.0 | 2026-04-24 | User Avatar — 프로필 사진 업로드/조회/삭제 (autoceo-s34-R1) |
+| v4.8.0 | 2026-04-24 | Advanced Search Filters — 날짜/인물/카테고리/타입 복합 필터 (autoceo-s34-R1) |
+| v4.9.0 | 2026-04-24 | Activity Heatmap — 월간/연간 활동 히트맵 데이터 (autoceo-s34-R1) |

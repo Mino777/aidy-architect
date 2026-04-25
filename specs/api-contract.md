@@ -3298,6 +3298,296 @@ GET /api/search에 날짜 범위, 인물, 카테고리 필터 추가.
 
 ---
 
+## 5.40 Mood Tracking (v5.0)
+
+대화 후 감정 태깅. 시간별 감정 트렌드 시각화 지원.
+
+### POST /api/chat/{chatId}/mood (v5.0)
+
+대화 메시지에 감정 태그 설정. 기존 값 덮어쓰기.
+
+```json
+// Request
+{ "mood": "happy" }
+// mood enum: "happy", "grateful", "neutral", "anxious", "sad", "angry", "excited", "lonely"
+
+// Response 200
+{
+  "chatId": 1,
+  "mood": "happy",
+  "taggedAt": "2026-04-25T10:00:00"
+}
+// Error 404 MESSAGE_NOT_FOUND
+// Error 400 INVALID_MOOD — 허용되지 않은 mood 값
+```
+
+### DELETE /api/chat/{chatId}/mood (v5.0)
+
+감정 태그 제거.
+
+```json
+// Response 204 No Content
+// Error 404 MESSAGE_NOT_FOUND
+```
+
+### GET /api/mood/trends (v5.0)
+
+기간별 감정 분포 + 트렌드.
+
+```json
+// Query: ?period=week|month|year (기본: month)
+// Response 200
+{
+  "period": "month",
+  "from": "2026-03-25",
+  "to": "2026-04-25",
+  "distribution": {
+    "happy": 12,
+    "grateful": 8,
+    "neutral": 15,
+    "anxious": 3,
+    "sad": 2,
+    "angry": 0,
+    "excited": 5,
+    "lonely": 1
+  },
+  "totalTagged": 46,
+  "dominantMood": "neutral",
+  "trend": "improving",
+  "weeklyBreakdown": [
+    { "week": "2026-W13", "dominant": "neutral", "count": 10 },
+    { "week": "2026-W14", "dominant": "happy", "count": 14 },
+    { "week": "2026-W15", "dominant": "happy", "count": 12 },
+    { "week": "2026-W16", "dominant": "grateful", "count": 10 }
+  ]
+}
+```
+
+- `trend`: "improving" | "stable" | "declining" — 최근 2주 vs 이전 2주 긍정 비율 비교
+- 긍정: happy, grateful, excited / 부정: anxious, sad, angry, lonely / 중립: neutral
+
+---
+
+## 5.41 Contact Frequency Goals (v5.1)
+
+인물별 연락 빈도 목표. 목표 미달 시 넛지 연동 가능.
+
+### PUT /api/people/{personId}/frequency-goal (v5.1)
+
+빈도 목표 설정/수정. Upsert.
+
+```json
+// Request
+{
+  "targetDays": 7,
+  "reminderEnabled": true
+}
+// targetDays: 1~365 (N일에 1번 연락 목표)
+
+// Response 200
+{
+  "personId": 1,
+  "personName": "홍길동",
+  "targetDays": 7,
+  "reminderEnabled": true,
+  "lastContactDate": "2026-04-20T14:30:00",
+  "daysSinceContact": 5,
+  "onTrack": true,
+  "updatedAt": "2026-04-25T10:00:00"
+}
+// Error 404 PERSON_NOT_FOUND
+// Error 400 VALIDATION_ERROR — targetDays 범위 초과
+```
+
+### DELETE /api/people/{personId}/frequency-goal (v5.1)
+
+빈도 목표 삭제.
+
+```json
+// Response 204 No Content
+// Error 404 PERSON_NOT_FOUND
+```
+
+### GET /api/frequency-goals (v5.1)
+
+전체 빈도 목표 목록 + 달성 현황.
+
+```json
+// Response 200
+{
+  "goals": [
+    {
+      "personId": 1,
+      "personName": "홍길동",
+      "targetDays": 7,
+      "reminderEnabled": true,
+      "lastContactDate": "2026-04-20T14:30:00",
+      "daysSinceContact": 5,
+      "onTrack": true
+    },
+    {
+      "personId": 2,
+      "personName": "김영희",
+      "targetDays": 14,
+      "reminderEnabled": false,
+      "lastContactDate": "2026-04-01T09:00:00",
+      "daysSinceContact": 24,
+      "onTrack": false
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "onTrack": 1,
+    "overdue": 1
+  }
+}
+```
+
+---
+
+## 5.42 Communication Quality Score (v5.2)
+
+AI가 대화 패턴을 분석하여 소통 품질 종합 점수 제공.
+
+### GET /api/insights/communication-quality (v5.2)
+
+```json
+// Query: ?period=week|month|year (기본: month)
+// Response 200
+{
+  "period": "month",
+  "overallScore": 78,
+  "dimensions": {
+    "consistency": 85,
+    "depth": 72,
+    "diversity": 65,
+    "responsiveness": 90
+  },
+  "topPeople": [
+    { "personId": 1, "personName": "홍길동", "score": 92 },
+    { "personId": 2, "personName": "김영희", "score": 71 }
+  ],
+  "suggestions": [
+    "김영희님과의 대화 깊이를 높여보세요. 최근 단답 위주입니다.",
+    "새로운 주제로 대화를 시도해보세요."
+  ],
+  "previousScore": 74,
+  "trend": "improving"
+}
+```
+
+- `overallScore`: 0~100 (4개 차원 가중 평균)
+- `consistency`: 꾸준한 소통 빈도 (연락 목표 달성률 기반)
+- `depth`: 대화 길이 + 메모리 추출률
+- `diversity`: 다양한 인물과의 소통
+- `responsiveness`: 대화 시작 후 지속성
+- `suggestions`: AI 생성 (2~3개, 한국어)
+- `trend`: "improving" | "stable" | "declining"
+
+---
+
+## 5.43 Relationship Milestones (v5.3)
+
+관계 이정표 자동 감지 + 수동 등록. 메모리/대화/기념일에서 자동 추출.
+
+### GET /api/people/{personId}/milestones (v5.3)
+
+인물별 이정표 목록.
+
+```json
+// Query: ?limit=20&offset=0
+// Response 200
+{
+  "milestones": [
+    {
+      "id": 1,
+      "type": "auto",
+      "category": "first_chat",
+      "title": "첫 대화",
+      "description": "홍길동님과 처음 대화를 나눈 날",
+      "date": "2026-03-15",
+      "sourceType": "chat",
+      "sourceId": 42,
+      "celebrated": false,
+      "createdAt": "2026-03-15T14:00:00"
+    },
+    {
+      "id": 2,
+      "type": "auto",
+      "category": "memory_100",
+      "title": "100번째 메모리",
+      "description": "홍길동님에 대한 100번째 기억이 만들어졌습니다",
+      "date": "2026-04-20",
+      "sourceType": "memory",
+      "sourceId": null,
+      "celebrated": true,
+      "createdAt": "2026-04-20T10:00:00"
+    }
+  ],
+  "total": 5,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+- `type`: "auto" (AI 감지) | "manual" (사용자 등록)
+- `category` auto 종류: "first_chat", "chat_10", "chat_50", "chat_100", "memory_10", "memory_50", "memory_100", "streak_7", "streak_30", "streak_100"
+- `celebrated`: 사용자가 이정표를 확인/축하했는지
+
+### POST /api/people/{personId}/milestones (v5.3)
+
+수동 이정표 등록.
+
+```json
+// Request
+{
+  "title": "함께 여행",
+  "description": "제주도 여행을 함께 했다",
+  "date": "2026-04-15"
+}
+// Response 201
+{
+  "id": 3,
+  "type": "manual",
+  "category": "custom",
+  "title": "함께 여행",
+  "description": "제주도 여행을 함께 했다",
+  "date": "2026-04-15",
+  "sourceType": null,
+  "sourceId": null,
+  "celebrated": false,
+  "createdAt": "2026-04-25T10:00:00"
+}
+// Error 404 PERSON_NOT_FOUND
+// Error 400 VALIDATION_ERROR
+```
+
+### PATCH /api/milestones/{id}/celebrate (v5.3)
+
+이정표 축하 토글.
+
+```json
+// Response 200
+{
+  "id": 1,
+  "celebrated": true,
+  "celebratedAt": "2026-04-25T10:00:00"
+}
+// Error 404 MILESTONE_NOT_FOUND
+```
+
+### DELETE /api/milestones/{id} (v5.3)
+
+수동 이정표만 삭제 가능. auto 이정표는 삭제 불가.
+
+```json
+// Response 204 No Content
+// Error 404 MILESTONE_NOT_FOUND
+// Error 400 VALIDATION_ERROR — auto 타입 이정표 삭제 불가
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -3392,6 +3682,8 @@ nickname: Aidy 테스터
 | MEDIA_LIMIT_EXCEEDED | 400 | 메모리당 미디어 3개 초과 | — |
 | MEDIA_TOO_LARGE | 400 | 파일 크기 5MB 초과 | — |
 | MEDIA_NOT_FOUND | 404 | 미디어 없음 | — |
+| INVALID_MOOD | 400 | 허용되지 않은 감정 값 | — |
+| MILESTONE_NOT_FOUND | 404 | 이정표 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -3488,3 +3780,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v4.7.0 | 2026-04-24 | User Avatar — 프로필 사진 업로드/조회/삭제 (autoceo-s34-R1) |
 | v4.8.0 | 2026-04-24 | Advanced Search Filters — 날짜/인물/카테고리/타입 복합 필터 (autoceo-s34-R1) |
 | v4.9.0 | 2026-04-24 | Activity Heatmap — 월간/연간 활동 히트맵 데이터 (autoceo-s34-R1) |
+| v5.0.0 | 2026-04-25 | Mood Tracking — 대화 감정 태깅 + 트렌드 (autoceo-s35-R1) |
+| v5.1.0 | 2026-04-25 | Contact Frequency Goals — 연락 빈도 목표 + 달성 현황 (autoceo-s35-R1) |
+| v5.2.0 | 2026-04-25 | Communication Quality Score — AI 소통 품질 분석 (autoceo-s35-R1) |
+| v5.3.0 | 2026-04-25 | Relationship Milestones — 관계 이정표 자동 감지 (autoceo-s35-R1) |

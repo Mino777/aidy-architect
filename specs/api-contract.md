@@ -3588,6 +3588,290 @@ AI가 대화 패턴을 분석하여 소통 품질 종합 점수 제공.
 
 ---
 
+## 5.44 Relationship Report (v5.4)
+
+월간 관계 종합 리포트. 지정 기간 내 모든 관계 데이터(소통 빈도, 감정 트렌드, 품질 점수, 이정표)를 종합 분석하여 리포트 생성.
+
+### GET /api/reports/relationship
+
+```
+Query: ?period=monthly|weekly&personId={optional}&date=2026-04
+Headers: Authorization: Bearer {JWT}
+```
+
+```json
+// Response 200
+{
+  "period": "monthly",
+  "startDate": "2026-04-01",
+  "endDate": "2026-04-30",
+  "summary": {
+    "totalConversations": 45,
+    "totalPeople": 12,
+    "averageMoodScore": 7.2,
+    "averageQualityScore": 8.1
+  },
+  "topPeople": [
+    {
+      "personId": 1,
+      "personName": "엄마",
+      "conversationCount": 15,
+      "moodTrend": "improving",
+      "qualityScore": 8.5,
+      "frequencyGoalMet": true,
+      "milestoneCount": 2
+    }
+  ],
+  "insights": [
+    {
+      "type": "POSITIVE_TREND",
+      "message": "이번 달 엄마와의 대화 빈도가 30% 증가했어요.",
+      "personId": 1
+    }
+  ],
+  "actionItems": [
+    {
+      "type": "CONTACT_REMINDER",
+      "message": "친구 민수에게 2주째 연락하지 않았어요.",
+      "personId": 3,
+      "priority": "HIGH"
+    }
+  ]
+}
+// Error 400 VALIDATION_ERROR — 잘못된 period/date 형식
+```
+
+### GET /api/reports/relationship/{personId}
+
+특정 인물에 대한 상세 관계 리포트.
+
+```
+Query: ?period=monthly&date=2026-04
+Headers: Authorization: Bearer {JWT}
+```
+
+```json
+// Response 200
+{
+  "personId": 1,
+  "personName": "엄마",
+  "period": "monthly",
+  "startDate": "2026-04-01",
+  "endDate": "2026-04-30",
+  "conversationCount": 15,
+  "memoriesCreated": 8,
+  "moodDistribution": { "HAPPY": 10, "NEUTRAL": 4, "SAD": 1 },
+  "moodTrend": "improving",
+  "qualityScore": 8.5,
+  "qualityTrend": "stable",
+  "frequencyGoal": { "target": 3, "actual": 4, "unit": "WEEKLY", "met": true },
+  "milestones": [
+    { "id": 1, "title": "첫 여행 계획", "date": "2026-04-15" }
+  ],
+  "topTopics": ["여행", "건강", "식사"],
+  "insights": [
+    { "type": "QUALITY_IMPROVEMENT", "message": "대화 깊이가 지난달 대비 향상되었어요." }
+  ]
+}
+// Error 404 PERSON_NOT_FOUND
+```
+
+---
+
+## 5.45 Smart Contact Reminders (v5.5)
+
+AI가 대화 패턴/빈도 목표/마지막 연락일을 분석하여 능동적으로 연락 리마인더를 생성. 사용자 설정에 따라 자동/수동 모드.
+
+### GET /api/reminders/smart
+
+AI가 생성한 스마트 리마인더 목록 조회.
+
+```
+Query: ?status=pending|dismissed|completed&limit=20&offset=0
+Headers: Authorization: Bearer {JWT}
+```
+
+```json
+// Response 200
+{
+  "reminders": [
+    {
+      "id": 1,
+      "personId": 3,
+      "personName": "민수",
+      "reason": "FREQUENCY_GAP",
+      "message": "민수에게 마지막으로 연락한 지 12일이 지났어요. 안부를 물어보는 건 어떨까요?",
+      "suggestedTopics": ["최근 이직 준비", "주말 계획"],
+      "priority": "HIGH",
+      "status": "pending",
+      "createdAt": "2026-04-26T09:00:00Z",
+      "dueDate": "2026-04-27T00:00:00Z"
+    }
+  ],
+  "total": 5,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### PATCH /api/reminders/smart/{id}
+
+리마인더 상태 변경 (완료/무시).
+
+```json
+// Request
+{ "status": "completed" | "dismissed" }
+// Response 200
+{
+  "id": 1,
+  "status": "completed",
+  "updatedAt": "2026-04-26T10:30:00Z"
+}
+// Error 404 REMINDER_NOT_FOUND
+// Error 400 VALIDATION_ERROR — 잘못된 status
+```
+
+### PUT /api/reminders/smart/settings
+
+스마트 리마인더 설정.
+
+```json
+// Request
+{
+  "enabled": true,
+  "maxRemindersPerDay": 5,
+  "quietHoursStart": "22:00",
+  "quietHoursEnd": "08:00",
+  "minDaysBetweenReminders": 3
+}
+// Response 200 — 설정 그대로 반환
+```
+
+### GET /api/reminders/smart/settings
+
+```json
+// Response 200
+{
+  "enabled": true,
+  "maxRemindersPerDay": 5,
+  "quietHoursStart": "22:00",
+  "quietHoursEnd": "08:00",
+  "minDaysBetweenReminders": 3
+}
+```
+
+**리마인더 생성 트리거 (서버 내부 로직)**:
+- `FREQUENCY_GAP`: 빈도 목표 대비 연락 부족
+- `MILESTONE_APPROACHING`: 기념일/이정표 접근
+- `MOOD_DROP`: 최근 대화 감정 하락 감지
+- `LONG_SILENCE`: 30일+ 무연락
+
+---
+
+## 5.46 Conversation Templates (v5.6)
+
+상황별 대화 시작 템플릿. AI가 관계 맥락 + 최근 대화를 분석하여 인물별 맞춤 템플릿 제공.
+
+### GET /api/templates/conversation
+
+```
+Query: ?personId={optional}&category=congratulation|comfort|gratitude|catchup|apology&limit=5
+Headers: Authorization: Bearer {JWT}
+```
+
+```json
+// Response 200
+{
+  "templates": [
+    {
+      "id": 1,
+      "category": "catchup",
+      "personId": 3,
+      "personName": "민수",
+      "title": "근황 물어보기",
+      "message": "민수야, 요즘 이직 준비는 잘 되고 있어? 저번에 면접 본다고 했는데 결과 어떻게 됐어?",
+      "context": "2주 전 이직 면접 이야기를 나눔",
+      "confidence": 0.85
+    }
+  ],
+  "categories": ["congratulation", "comfort", "gratitude", "catchup", "apology"]
+}
+```
+
+### POST /api/templates/conversation/{id}/use
+
+템플릿 사용 기록 (AI 추천 개선용).
+
+```json
+// Request
+{ "used": true, "feedback": "helpful" | "not_relevant" | "too_formal" }
+// Response 200
+{ "id": 1, "usedAt": "2026-04-26T10:00:00Z" }
+// Error 404 TEMPLATE_NOT_FOUND
+```
+
+---
+
+## 5.47 People Comparison (v5.7)
+
+두 관계인 간 소통 패턴 비교 인사이트. 대화 빈도, 감정, 토픽, 품질을 시각적으로 비교.
+
+### GET /api/people/compare
+
+```
+Query: ?personId1={id}&personId2={id}&period=monthly&date=2026-04
+Headers: Authorization: Bearer {JWT}
+```
+
+```json
+// Response 200
+{
+  "period": "monthly",
+  "startDate": "2026-04-01",
+  "endDate": "2026-04-30",
+  "person1": {
+    "personId": 1,
+    "personName": "엄마",
+    "conversationCount": 15,
+    "averageMoodScore": 8.2,
+    "qualityScore": 8.5,
+    "topTopics": ["건강", "여행", "식사"],
+    "responseTime": "within_hours",
+    "initiatedByMe": 60
+  },
+  "person2": {
+    "personId": 3,
+    "personName": "민수",
+    "conversationCount": 8,
+    "averageMoodScore": 7.0,
+    "qualityScore": 7.2,
+    "topTopics": ["이직", "게임", "운동"],
+    "responseTime": "within_days",
+    "initiatedByMe": 40
+  },
+  "comparison": {
+    "moreFrequent": "person1",
+    "higherMood": "person1",
+    "higherQuality": "person1",
+    "commonTopics": ["운동"],
+    "insights": [
+      {
+        "type": "FREQUENCY_GAP",
+        "message": "엄마와는 민수보다 2배 더 자주 대화해요."
+      },
+      {
+        "type": "TOPIC_DIVERSITY",
+        "message": "민수와는 대화 주제가 더 다양해요."
+      }
+    ]
+  }
+}
+// Error 400 VALIDATION_ERROR — personId1 == personId2, 잘못된 period
+// Error 404 PERSON_NOT_FOUND — personId1 또는 personId2 없음
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -3784,3 +4068,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v5.1.0 | 2026-04-25 | Contact Frequency Goals — 연락 빈도 목표 + 달성 현황 (autoceo-s35-R1) |
 | v5.2.0 | 2026-04-25 | Communication Quality Score — AI 소통 품질 분석 (autoceo-s35-R1) |
 | v5.3.0 | 2026-04-25 | Relationship Milestones — 관계 이정표 자동 감지 (autoceo-s35-R1) |
+| v5.4.0 | 2026-04-26 | Relationship Report — 월간/주간 관계 종합 리포트 (autoceo-s36-R1) |
+| v5.5.0 | 2026-04-26 | Smart Contact Reminders — AI 능동적 연락 리마인더 (autoceo-s36-R1) |
+| v5.6.0 | 2026-04-26 | Conversation Templates — 상황별 맞춤 대화 시작 템플릿 (autoceo-s36-R1) |
+| v5.7.0 | 2026-04-26 | People Comparison — 두 관계인 소통 패턴 비교 인사이트 (autoceo-s36-R1) |

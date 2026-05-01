@@ -3872,6 +3872,209 @@ Headers: Authorization: Bearer {JWT}
 
 ---
 
+## 5.48 Data Export (v5.8)
+
+사용자의 전체 데이터를 JSON으로 내보내기 (GDPR data portability 대응).
+
+### POST /api/account/export
+데이터 내보내기 요청. 비동기 처리 후 다운로드 URL 반환.
+```json
+// Request
+{
+  "sections": ["people", "memories", "chats", "settings"]  // optional, 기본 전체
+}
+// Response 202
+{
+  "exportId": "exp_abc123",
+  "status": "PROCESSING",
+  "requestedAt": "2026-05-02T10:00:00Z"
+}
+// Error 429
+{ "error": "이미 진행 중인 내보내기가 있습니다.", "code": "EXPORT_IN_PROGRESS" }
+```
+
+### GET /api/account/export/{exportId}
+내보내기 상태 조회 + 다운로드.
+```json
+// Response 200 (진행 중)
+{
+  "exportId": "exp_abc123",
+  "status": "PROCESSING",
+  "progress": 65,
+  "requestedAt": "2026-05-02T10:00:00Z"
+}
+// Response 200 (완료)
+{
+  "exportId": "exp_abc123",
+  "status": "COMPLETED",
+  "progress": 100,
+  "requestedAt": "2026-05-02T10:00:00Z",
+  "completedAt": "2026-05-02T10:00:15Z",
+  "downloadUrl": "/api/account/export/exp_abc123/download",
+  "expiresAt": "2026-05-02T11:00:00Z",
+  "fileSizeBytes": 524288
+}
+```
+
+### GET /api/account/export/{exportId}/download
+실제 JSON 파일 다운로드.
+```json
+// Response 200 (Content-Type: application/json, Content-Disposition: attachment)
+{
+  "exportedAt": "2026-05-02T10:00:15Z",
+  "user": { "userId": 1, "email": "...", "nickname": "..." },
+  "people": [ { "id": 1, "name": "...", "relationship": "...", ... } ],
+  "memories": [ { "id": 1, "content": "...", "category": "...", ... } ],
+  "chats": [ { "id": 1, "userMessage": "...", "aiResponse": "...", ... } ],
+  "settings": { "theme": "...", "language": "...", ... }
+}
+// Error 404
+{ "error": "내보내기를 찾을 수 없습니다.", "code": "EXPORT_NOT_FOUND" }
+// Error 410
+{ "error": "다운로드 기한이 만료되었습니다.", "code": "EXPORT_EXPIRED" }
+```
+
+---
+
+## 5.49 Contact Import (v5.9)
+
+전화번호부 연락처를 People로 일괄 등록. 중복 감지 포함.
+
+### POST /api/people/import
+```json
+// Request
+{
+  "contacts": [
+    {
+      "name": "김철수",
+      "phone": "010-1234-5678",
+      "email": "cs@example.com",
+      "relationship": "친구",
+      "note": "대학 동기"
+    },
+    {
+      "name": "이영희",
+      "phone": "010-9876-5432"
+    }
+  ]
+}
+// Response 200
+{
+  "total": 2,
+  "created": 1,
+  "skipped": 1,
+  "results": [
+    { "name": "김철수", "status": "CREATED", "personId": 15 },
+    { "name": "이영희", "status": "SKIPPED", "reason": "DUPLICATE_NAME", "existingPersonId": 3 }
+  ]
+}
+// Error 400
+{ "error": "연락처 목록이 비어있습니다.", "code": "EMPTY_CONTACTS" }
+{ "error": "한 번에 최대 100명까지 등록 가능합니다.", "code": "IMPORT_LIMIT_EXCEEDED" }
+```
+
+**중복 판정 기준**: name이 기존 People과 정확히 일치하면 SKIPPED. phone/email 일치도 SKIPPED.
+
+### GET /api/people/import/preview
+등록 전 미리보기 (중복 확인).
+```json
+// Request (same body as POST)
+// Response 200
+{
+  "total": 2,
+  "wouldCreate": 1,
+  "wouldSkip": 1,
+  "preview": [
+    { "name": "김철수", "action": "CREATE" },
+    { "name": "이영희", "action": "SKIP", "reason": "DUPLICATE_NAME", "existingPersonId": 3 }
+  ]
+}
+```
+
+---
+
+## 5.50 Calendar Integration (v6.0)
+
+기념일, 스마트 리마인더를 .ics (iCalendar) 형식으로 내보내기.
+
+### GET /api/calendar/export
+```
+// Response 200 (Content-Type: text/calendar; charset=utf-8)
+// Content-Disposition: attachment; filename="aidy-calendar.ics"
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Aidy//Calendar//KO
+...
+END:VCALENDAR
+```
+
+### GET /api/calendar/events
+JSON으로 캘린더 이벤트 목록 조회.
+```json
+// Query: ?from=2026-05-01&to=2026-06-01&type=anniversary,reminder
+// Response 200
+{
+  "events": [
+    {
+      "id": "evt_1",
+      "type": "ANNIVERSARY",
+      "title": "김철수 생일",
+      "date": "2026-05-15",
+      "recurring": true,
+      "personId": 1,
+      "personName": "김철수",
+      "sourceId": 5,
+      "sourceType": "anniversary_reminder"
+    },
+    {
+      "id": "evt_2",
+      "type": "REMINDER",
+      "title": "이영희에게 연락하기",
+      "date": "2026-05-10",
+      "recurring": false,
+      "personId": 3,
+      "personName": "이영희",
+      "sourceId": 12,
+      "sourceType": "smart_reminder"
+    }
+  ],
+  "total": 2
+}
+// Error 400
+{ "error": "날짜 범위가 올바르지 않습니다.", "code": "INVALID_DATE_RANGE" }
+```
+
+### POST /api/calendar/subscribe
+캘린더 구독 URL 생성 (토큰 기반, 외부 캘린더 앱에서 구독).
+```json
+// Response 201
+{
+  "subscriptionUrl": "/api/calendar/feed/{feedToken}",
+  "feedToken": "feed_xyz789",
+  "createdAt": "2026-05-02T10:00:00Z"
+}
+```
+
+### GET /api/calendar/feed/{feedToken}
+외부 캘린더 앱용 .ics 피드 (인증 불필요, 토큰으로 접근).
+```
+// Response 200 (Content-Type: text/calendar)
+// 인증 헤더 불필요 — feedToken이 인증 역할
+BEGIN:VCALENDAR
+...
+END:VCALENDAR
+```
+
+### DELETE /api/calendar/subscribe
+구독 URL 무효화.
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "구독 정보가 없습니다.", "code": "SUBSCRIPTION_NOT_FOUND" }
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -3968,6 +4171,13 @@ nickname: Aidy 테스터
 | MEDIA_NOT_FOUND | 404 | 미디어 없음 | — |
 | INVALID_MOOD | 400 | 허용되지 않은 감정 값 | — |
 | MILESTONE_NOT_FOUND | 404 | 이정표 없음 | — |
+| EXPORT_IN_PROGRESS | 429 | 이미 진행 중인 내보내기 존재 | — |
+| EXPORT_NOT_FOUND | 404 | 내보내기 없음 | — |
+| EXPORT_EXPIRED | 410 | 다운로드 기한 만료 | — |
+| EMPTY_CONTACTS | 400 | 연락처 목록 비어있음 | — |
+| IMPORT_LIMIT_EXCEEDED | 400 | 일괄 등록 100명 초과 | — |
+| INVALID_DATE_RANGE | 400 | 날짜 범위 오류 | — |
+| SUBSCRIPTION_NOT_FOUND | 404 | 캘린더 구독 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -4072,3 +4282,6 @@ Retry-After: 30                // 재시도까지 대기 초
 | v5.5.0 | 2026-04-26 | Smart Contact Reminders — AI 능동적 연락 리마인더 (autoceo-s36-R1) |
 | v5.6.0 | 2026-04-26 | Conversation Templates — 상황별 맞춤 대화 시작 템플릿 (autoceo-s36-R1) |
 | v5.7.0 | 2026-04-26 | People Comparison — 두 관계인 소통 패턴 비교 인사이트 (autoceo-s36-R1) |
+| v5.8.0 | 2026-05-02 | Data Export — 전체 사용자 데이터 JSON 내보내기 (autoceo-s37-R1) |
+| v5.9.0 | 2026-05-02 | Contact Import — 전화번호부 일괄 People 등록 (autoceo-s37-R1) |
+| v6.0.0 | 2026-05-02 | Calendar Integration — 기념일/리마인더 .ics 캘린더 내보내기+구독 (autoceo-s37-R1) |

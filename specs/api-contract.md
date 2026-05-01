@@ -3975,10 +3975,10 @@ Headers: Authorization: Bearer {JWT}
 
 **중복 판정 기준**: name이 기존 People과 정확히 일치하면 SKIPPED. phone/email 일치도 SKIPPED.
 
-### GET /api/people/import/preview
-등록 전 미리보기 (중복 확인).
+### POST /api/people/import/preview
+등록 전 미리보기 (중복 확인). body 필요하므로 POST 사용.
 ```json
-// Request (same body as POST)
+// Request (same body as POST /api/people/import)
 // Response 200
 {
   "total": 2,

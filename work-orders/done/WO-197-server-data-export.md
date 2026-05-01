@@ -21,6 +21,11 @@
 - 동시 내보내기 1건 제한 (EXPORT_IN_PROGRESS)
 
 ## 완료 기준
-- [ ] 3개 엔드포인트 동작
-- [ ] 단위 테스트 통과
-- [ ] 빌드 성공
+- [x] 3개 엔드포인트 동작
+- [x] 단위 테스트 통과
+- [x] 빌드 성공
+
+## 완료 보고
+- 커밋: `[R2-server] feat: WO-197 Data Export API`
+- 파일 9개: V50 migration, DataExport entity, repository, service, controller, DTOs, error codes, service test (6), controller test (6)
+- 테스트: 1603 tests, 0 failures

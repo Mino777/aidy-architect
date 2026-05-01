@@ -13,8 +13,8 @@ tmux kill-session -t "$SESSION" 2>/dev/null
 # 새 세션 (architect)
 tmux new-session -d -s "$SESSION" -n control -c "$BASE/aidy-architect"
 
-# 오른쪽 절반: server (상단)
-tmux split-window -h -t "$SESSION:0.0" -c "$BASE/aidy-server" -p 50
+# 오른쪽 30%: server (상단) — 1:3 레이아웃 (architect 70% | workers 30%)
+tmux split-window -h -t "$SESSION:0.0" -c "$BASE/aidy-server" -p 30
 
 # 오른쪽 중간: ios
 tmux split-window -v -t "$SESSION:0.1" -c "$BASE/aidy-ios" -p 66

@@ -21,7 +21,13 @@
 - feedToken은 UUID 기반, 인증 헤더 불필요
 
 ## 완료 기준
-- [ ] 5개 엔드포인트 동작
-- [ ] .ics 형식 RFC 5545 준수
-- [ ] 단위 테스트 통과
-- [ ] 빌드 성공
+- [x] 5개 엔드포인트 동작
+- [x] .ics 형식 RFC 5545 준수
+- [x] 단위 테스트 통과
+- [x] 빌드 성공
+
+## 완료 보고
+- 커밋: `[R2-server] feat: WO-199 Calendar Integration API`
+- 파일 8개: V51 migration, CalendarSubscription entity, repository, CalendarService, CalendarController, SecurityConfig (feed 공개), service test (8), controller test (8)
+- 테스트: 1632 tests, 0 failures
+- SecurityConfig: /api/calendar/feed/** permitAll 추가

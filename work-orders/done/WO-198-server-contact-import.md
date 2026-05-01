@@ -19,7 +19,13 @@
 - 기존 PersonService 재사용 (새 Service 최소화)
 
 ## 완료 기준
-- [ ] POST import + GET preview 동작
-- [ ] 중복 판정 정확 (name, phone, email)
-- [ ] 단위 테스트 통과
-- [ ] 빌드 성공
+- [x] POST import + POST preview 동작
+- [x] 중복 판정 정확 (name 기반, Person 엔티티에 phone/email 없음)
+- [x] 단위 테스트 통과
+- [x] 빌드 성공
+
+## 완료 보고
+- 커밋: `[R2-server] feat: WO-198 Contact Import API`
+- 파일 4개: ContactImportService, ContactImportController, service test (7), controller test (4)
+- 테스트: 1614 tests, 0 failures
+- Note: preview는 GET이 아닌 POST (request body 필요)

@@ -1,9 +1,9 @@
 {
-  "totalQueries": 33,
-  "lastUpdated": "2026-04-26T10:40:14.397Z",
+  "totalQueries": 35,
+  "lastUpdated": "2026-05-02T02:23:54.208Z",
   "hits": {
     "docs/solutions/2026-04-17-worker-stall-detection-protocol": 3,
-    "HANDOFF": 3,
+    "HANDOFF": 4,
     "docs/retros/session-compound-s9-s11": 2,
     "CLAUDE": 4,
     "SYSTEM-GUIDE": 3,
@@ -21,9 +21,9 @@
     "docs/retros/autoceo-s6-round-9-retro": 1,
     "docs/worker-prompts/2026-04-18": 5,
     "docs/worker-prompts/2026-04-16": 2,
-    "docs/retros/s17-s18-compound-retro": 1,
+    "docs/retros/s17-s18-compound-retro": 2,
     "docs/retros/s20-compound-retro": 2,
-    "docs/compound-principles": 2,
+    "docs/compound-principles": 3,
     "docs/retros/autoceo-s10-round-retro": 1,
     "docs/retros/s24-autoceo-compound-retro": 1,
     "docs/retros/autoceo-s6-session-retro": 2,
@@ -32,13 +32,14 @@
     "docs/solutions/2026-04-19-polling-token-optimization": 1,
     "docs/worker-prompts/2026-04-19": 4,
     "NEXT": 2,
-    "docs/retros/s25-autoceo-compound-retro": 2,
+    "docs/retros/s25-autoceo-compound-retro": 3,
     "DESIGN": 3,
     "docs/retros/autoceo-s5-round-2-retro": 1,
-    "docs/worker-prompts/2026-04-22": 2,
+    "docs/worker-prompts/2026-04-22": 3,
     "docs/retros/autoceo-s4-round-5-retro": 1,
     "docs/crash-logs/2026-04-21_120455_ios": 1,
     "docs/retros/ingest-s34-tma-retro": 1,
-    "docs/retros/s32-autoceo-compound-retro": 1
+    "docs/retros/s32-autoceo-compound-retro": 1,
+    "docs/solutions/2026-05-02-ios-deriveddata-build-cache": 1
   }
 }

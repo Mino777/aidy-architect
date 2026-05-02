@@ -4075,6 +4075,103 @@ END:VCALENDAR
 
 ---
 
+## 5.51 Favorite People (v6.1)
+
+인물 즐겨찾기 마킹 + 즐겨찾기 필터링.
+
+### POST /api/people/{personId}/favorite
+즐겨찾기 토글.
+```json
+// Response 200
+{
+  "personId": 1,
+  "favorited": true
+}
+```
+
+### GET /api/people/favorites
+즐겨찾기 인물 목록.
+```json
+// Response 200
+{
+  "favorites": [
+    {
+      "personId": 1,
+      "name": "김철수",
+      "relationship": "친구",
+      "favoritedAt": "2026-05-02T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+### DELETE /api/people/{personId}/favorite
+즐겨찾기 해제.
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "즐겨찾기가 설정되지 않았습니다.", "code": "FAVORITE_NOT_FOUND" }
+```
+
+---
+
+## 5.52 Conversation Summary (v6.2)
+
+대화 자동 요약 생성 + 조회. AI가 최근 대화를 분석하여 핵심 요약 생성.
+
+### POST /api/chat/summary
+현재까지의 대화 요약 생성 요청.
+```json
+// Request
+{
+  "messageCount": 20  // optional, 기본 최근 20개 메시지
+}
+// Response 201
+{
+  "summaryId": 1,
+  "summary": "김철수와의 생일 선물 논의. 운동 취미 관련 대화. 주말 약속 확인.",
+  "messageRange": {
+    "from": "2026-04-28T09:00:00Z",
+    "to": "2026-05-02T10:00:00Z",
+    "count": 20
+  },
+  "createdAt": "2026-05-02T10:00:00Z"
+}
+```
+
+### GET /api/chat/summaries
+요약 목록 조회.
+```json
+// Query: ?limit=10&offset=0
+// Response 200
+{
+  "summaries": [
+    {
+      "summaryId": 1,
+      "summary": "김철수와의 생일 선물 논의...",
+      "messageRange": {
+        "from": "2026-04-28T09:00:00Z",
+        "to": "2026-05-02T10:00:00Z",
+        "count": 20
+      },
+      "createdAt": "2026-05-02T10:00:00Z"
+    }
+  ],
+  "total": 5
+}
+```
+
+### DELETE /api/chat/summaries/{summaryId}
+요약 삭제.
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "요약을 찾을 수 없습니다.", "code": "SUMMARY_NOT_FOUND" }
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -4178,6 +4275,8 @@ nickname: Aidy 테스터
 | IMPORT_LIMIT_EXCEEDED | 400 | 일괄 등록 100명 초과 | — |
 | INVALID_DATE_RANGE | 400 | 날짜 범위 오류 | — |
 | SUBSCRIPTION_NOT_FOUND | 404 | 캘린더 구독 없음 | — |
+| FAVORITE_NOT_FOUND | 404 | 즐겨찾기 없음 | — |
+| SUMMARY_NOT_FOUND | 404 | 대화 요약 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -4285,3 +4384,5 @@ Retry-After: 30                // 재시도까지 대기 초
 | v5.8.0 | 2026-05-02 | Data Export — 전체 사용자 데이터 JSON 내보내기 (autoceo-s37-R1) |
 | v5.9.0 | 2026-05-02 | Contact Import — 전화번호부 일괄 People 등록 (autoceo-s37-R1) |
 | v6.0.0 | 2026-05-02 | Calendar Integration — 기념일/리마인더 .ics 캘린더 내보내기+구독 (autoceo-s37-R1) |
+| v6.1.0 | 2026-05-02 | Favorite People — 인물 즐겨찾기 마킹+필터링 (autoceo-s38-R1) |
+| v6.2.0 | 2026-05-02 | Conversation Summary — AI 대화 자동 요약 생성+조회 (autoceo-s38-R1) |

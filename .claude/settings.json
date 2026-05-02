@@ -2,7 +2,27 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "deny": [
+    "Read(**/.env*)",
+    "Read(**/secrets*)",
+    "Write(**/.env*)",
+    "Bash(rm -rf *)",
+    "Bash(git push --force*)",
+    "Bash(git reset --hard*)",
+    "Bash(DROP TABLE*)"
+  ],
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/jominho/Develop/aidy-architect/.claude/hooks/gc-drift.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -10,6 +30,16 @@
           {
             "type": "command",
             "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'git commit' 2>/dev/null; then echo '⚠️ ARCHITECT GATE: 커밋 전 확인 — work-order 상태가 in-progress인가? gates/ 검증을 완료했는가?'; fi",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/jominho/Develop/aidy-architect/.claude/hooks/secret-guard.sh",
             "timeout": 5000
           }
         ]

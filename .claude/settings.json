@@ -29,8 +29,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'git commit' 2>/dev/null; then echo '⚠️ ARCHITECT GATE: 커밋 전 확인 — work-order 상태가 in-progress인가? gates/ 검증을 완료했는가?'; fi",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | jq -r '.command // empty' 2>/dev/null | grep -qE 'git commit'; then echo '⚠️ ARCHITECT GATE: 커밋 전 확인 — work-order 상태가 in-progress인가? gates/ 검증을 완료했는가?'; fi",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "/Users/jominho/Develop/aidy-architect/.claude/hooks/block-dangerous.sh",
+            "timeout": 3000
           }
         ]
       },

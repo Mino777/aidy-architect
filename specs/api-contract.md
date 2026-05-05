@@ -4172,6 +4172,323 @@ END:VCALENDAR
 
 ---
 
+## 5.53 Push Notification Delivery (v7.0)
+
+실제 푸시 알림 발송 파이프라인. 등록된 디바이스 토큰(v1.1)으로 FCM/APNs 발송.
+
+### POST /api/notifications/send
+관리자/시스템용 — 특정 사용자에게 푸시 발송 (내부 이벤트 트리거).
+```json
+// Request
+{
+  "userId": 1,
+  "title": "Aidy 알림",
+  "body": "엄마에게 연락한 지 7일이 지났어요",
+  "type": "NUDGE",           // NUDGE | REMINDER | DIGEST | ANNIVERSARY | GOAL
+  "data": {                  // 딥링크 페이로드 (선택)
+    "screen": "person_detail",
+    "personId": 5
+  }
+}
+// Response 200
+{
+  "notificationId": "uuid-string",
+  "delivered": true,
+  "platform": "FCM"          // FCM | APNS
+}
+// Error 404
+{ "error": "디바이스 토큰이 등록되지 않았습니다.", "code": "NO_DEVICE_TOKEN" }
+```
+
+### GET /api/notifications/history
+발송 이력 조회.
+```json
+// Query: ?page=0&size=20&type=NUDGE (선택)
+// Response 200
+{
+  "notifications": [
+    {
+      "id": "uuid-string",
+      "title": "Aidy 알림",
+      "body": "엄마에게 연락한 지 7일이 지났어요",
+      "type": "NUDGE",
+      "delivered": true,
+      "read": false,
+      "createdAt": "2026-05-05T10:00:00Z"
+    }
+  ],
+  "page": 0,
+  "totalPages": 3,
+  "totalElements": 52
+}
+```
+
+### PATCH /api/notifications/{notificationId}/read
+알림 읽음 처리.
+```json
+// Response 200
+{ "id": "uuid-string", "read": true }
+// Error 404
+{ "error": "알림을 찾을 수 없습니다.", "code": "NOTIFICATION_NOT_FOUND" }
+```
+
+### POST /api/notifications/test
+디바이스 토큰 유효성 테스트 푸시 발송.
+```json
+// Response 200
+{ "success": true, "message": "테스트 알림이 발송되었습니다." }
+// Error 400
+{ "error": "디바이스 토큰이 유효하지 않습니다.", "code": "INVALID_DEVICE_TOKEN" }
+```
+
+---
+
+## 5.54 Relationship Goals (v7.1)
+
+인물별 커스텀 관계 목표 설정 + 진척 추적. (빈도 목표 v5.1 확장)
+
+### POST /api/people/{personId}/goals
+```json
+// Request
+{
+  "title": "매주 전화하기",
+  "description": "일요일마다 안부 전화",
+  "type": "RECURRING",          // RECURRING | ONE_TIME | MILESTONE
+  "frequency": "WEEKLY",        // DAILY | WEEKLY | MONTHLY (RECURRING만)
+  "targetDate": "2026-06-01",   // ONE_TIME/MILESTONE만
+  "reminderEnabled": true
+}
+// Response 201
+{
+  "id": 1,
+  "personId": 5,
+  "title": "매주 전화하기",
+  "description": "일요일마다 안부 전화",
+  "type": "RECURRING",
+  "frequency": "WEEKLY",
+  "targetDate": null,
+  "reminderEnabled": true,
+  "streak": 0,
+  "completedCount": 0,
+  "lastCompletedAt": null,
+  "createdAt": "2026-05-05T10:00:00Z"
+}
+// Error 404
+{ "error": "인물을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+### GET /api/people/{personId}/goals
+```json
+// Response 200
+{
+  "goals": [
+    {
+      "id": 1,
+      "title": "매주 전화하기",
+      "type": "RECURRING",
+      "frequency": "WEEKLY",
+      "streak": 3,
+      "completedCount": 12,
+      "lastCompletedAt": "2026-05-04T18:00:00Z",
+      "isOverdue": false
+    }
+  ]
+}
+```
+
+### POST /api/people/{personId}/goals/{goalId}/complete
+목표 달성 기록.
+```json
+// Request (선택)
+{ "note": "30분 통화, 건강 이야기" }
+// Response 200
+{
+  "id": 1,
+  "streak": 4,
+  "completedCount": 13,
+  "lastCompletedAt": "2026-05-05T18:00:00Z",
+  "nextDueAt": "2026-05-12T00:00:00Z"
+}
+// Error 400
+{ "error": "이미 오늘 완료된 목표입니다.", "code": "GOAL_ALREADY_COMPLETED_TODAY" }
+```
+
+### DELETE /api/people/{personId}/goals/{goalId}
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "목표를 찾을 수 없습니다.", "code": "GOAL_NOT_FOUND" }
+```
+
+### GET /api/goals/summary
+전체 목표 현황 대시보드.
+```json
+// Response 200
+{
+  "totalGoals": 8,
+  "activeGoals": 6,
+  "overdueGoals": 2,
+  "totalStreak": 15,
+  "topStreaks": [
+    { "goalId": 1, "personName": "엄마", "title": "매주 전화하기", "streak": 12 }
+  ],
+  "overdueList": [
+    { "goalId": 3, "personName": "민수", "title": "월 1회 만남", "overdueDays": 5 }
+  ]
+}
+```
+
+---
+
+## 5.55 Memory Emotions (v7.2)
+
+메모리에 감정 태깅 (AI 자동 + 수동 수정). 감정별 필터 + 트렌드 분석.
+
+### GET /api/memories?emotion={emotion}
+기존 memories 엔드포인트에 emotion 필터 추가.
+```
+감정 enum: JOY | GRATITUDE | LOVE | SADNESS | ANGER | ANXIETY | SURPRISE | NEUTRAL
+```
+
+### PATCH /api/memories/{id}/emotion
+수동 감정 수정.
+```json
+// Request
+{ "emotion": "GRATITUDE" }
+// Response 200
+{
+  "id": 1,
+  "emotion": "GRATITUDE",
+  "previousEmotion": "JOY",
+  "updatedAt": "2026-05-05T10:00:00Z"
+}
+// Error 400
+{ "error": "유효하지 않은 감정입니다.", "code": "INVALID_EMOTION" }
+```
+
+### GET /api/memories/emotions/trend
+감정 트렌드 분석.
+```json
+// Query: ?period=MONTHLY&months=6 (기본 6개월)
+// Response 200
+{
+  "period": "MONTHLY",
+  "trends": [
+    {
+      "month": "2026-05",
+      "emotions": {
+        "JOY": 12,
+        "GRATITUDE": 8,
+        "LOVE": 5,
+        "SADNESS": 2,
+        "NEUTRAL": 15
+      },
+      "dominantEmotion": "NEUTRAL",
+      "totalMemories": 42
+    }
+  ],
+  "overallDominant": "JOY",
+  "emotionDiversity": 0.78
+}
+```
+
+### GET /api/people/{personId}/emotions
+인물별 감정 분포.
+```json
+// Response 200
+{
+  "personId": 5,
+  "personName": "엄마",
+  "emotions": {
+    "LOVE": 25,
+    "GRATITUDE": 18,
+    "JOY": 15,
+    "ANXIETY": 3
+  },
+  "dominantEmotion": "LOVE",
+  "recentTrend": "POSITIVE"    // POSITIVE | NEGATIVE | STABLE
+}
+```
+
+---
+
+## 5.56 AI Chat Personas (v7.3)
+
+인물별 AI 대화 스타일 설정. AI가 다른 톤으로 응답.
+
+### GET /api/personas
+사용 가능한 페르소나 목록.
+```json
+// Response 200
+{
+  "personas": [
+    {
+      "id": "empathetic",
+      "name": "공감형 리스너",
+      "description": "감정에 집중하며 공감적으로 대화합니다",
+      "traits": ["공감", "경청", "위로"]
+    },
+    {
+      "id": "analytical",
+      "name": "분석형 조언자",
+      "description": "객관적으로 상황을 분석하고 해결책을 제시합니다",
+      "traits": ["논리적", "직접적", "솔루션"]
+    },
+    {
+      "id": "cheerful",
+      "name": "밝은 응원단",
+      "description": "긍정적 에너지로 격려하며 대화합니다",
+      "traits": ["긍정", "격려", "유머"]
+    },
+    {
+      "id": "reflective",
+      "name": "성찰 가이드",
+      "description": "깊은 질문으로 자기 성찰을 돕습니다",
+      "traits": ["질문", "성찰", "깊이"]
+    },
+    {
+      "id": "default",
+      "name": "기본",
+      "description": "균형 잡힌 기본 대화 스타일",
+      "traits": ["균형", "자연스러움"]
+    }
+  ]
+}
+```
+
+### PUT /api/chat/persona
+전체 기본 페르소나 설정.
+```json
+// Request
+{ "personaId": "empathetic" }
+// Response 200
+{ "personaId": "empathetic", "name": "공감형 리스너" }
+// Error 400
+{ "error": "존재하지 않는 페르소나입니다.", "code": "INVALID_PERSONA" }
+```
+
+### PUT /api/people/{personId}/persona
+인물별 페르소나 오버라이드.
+```json
+// Request
+{ "personaId": "analytical" }
+// Response 200
+{
+  "personId": 5,
+  "personName": "엄마",
+  "personaId": "analytical",
+  "personaName": "분석형 조언자"
+}
+```
+
+### DELETE /api/people/{personId}/persona
+인물별 오버라이드 제거 (기본으로 복귀).
+```json
+// Response 204 (No Content)
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -4240,6 +4557,13 @@ nickname: Aidy 테스터
 | INTERNAL_ERROR | 500 | 서버 오류 | — |
 | PASSWORD_RESET_TOKEN_INVALID | 400 | 비밀번호 재설정 토큰 무효/만료/사용됨 | — |
 | AI_UNAVAILABLE | 503 | AI 서비스 일시 중단 (Circuit Breaker OPEN) | ✅ |
+| NO_DEVICE_TOKEN | 404 | 디바이스 토큰 미등록 | — |
+| INVALID_DEVICE_TOKEN | 400 | 디바이스 토큰 유효하지 않음 | — |
+| NOTIFICATION_NOT_FOUND | 404 | 알림 없음 | — |
+| GOAL_NOT_FOUND | 404 | 목표 없음 | — |
+| GOAL_ALREADY_COMPLETED_TODAY | 400 | 오늘 이미 완료된 목표 | — |
+| INVALID_EMOTION | 400 | 유효하지 않은 감정 값 | — |
+| INVALID_PERSONA | 400 | 존재하지 않는 페르소나 | — |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
 | CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
@@ -4386,3 +4710,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v6.0.0 | 2026-05-02 | Calendar Integration — 기념일/리마인더 .ics 캘린더 내보내기+구독 (autoceo-s37-R1) |
 | v6.1.0 | 2026-05-02 | Favorite People — 인물 즐겨찾기 마킹+필터링 (autoceo-s38-R1) |
 | v6.2.0 | 2026-05-02 | Conversation Summary — AI 대화 자동 요약 생성+조회 (autoceo-s38-R1) |
+| v7.0.0 | 2026-05-05 | Push Notification Delivery — 실제 푸시 발송 파이프라인 + 이력 (autoceo-s40-R1) |
+| v7.1.0 | 2026-05-05 | Relationship Goals — 인물별 커스텀 목표 + 진척 추적 (autoceo-s40-R1) |
+| v7.2.0 | 2026-05-05 | Memory Emotions — 감정 태깅 + 트렌드 분석 (autoceo-s40-R1) |
+| v7.3.0 | 2026-05-05 | AI Chat Personas — 인물별 AI 대화 스타일 설정 (autoceo-s40-R1) |

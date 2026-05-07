@@ -4743,6 +4743,292 @@ AI가 현재 트렌드를 분석해 향후 30일 관계 건강 예측.
 
 ---
 
+## 5.61 Daily Routine (v8.0)
+
+일과 시간대에 관계 행동을 배치. 아침/점심/저녁 루틴에 연락/메모 행동 예약.
+
+### POST /api/routines
+```json
+// Request
+{
+  "title": "엄마한테 안부 문자",
+  "timeSlot": "MORNING",         // MORNING | AFTERNOON | EVENING | NIGHT
+  "time": "08:30",               // HH:mm (선택)
+  "days": ["MON", "WED", "FRI"], // 요일 (빈 배열 = 매일)
+  "personId": 5,                 // 연관 인물 (선택)
+  "actionType": "CONTACT",       // CONTACT | NOTE | REFLECT | CUSTOM
+  "enabled": true
+}
+// Response 201
+{
+  "id": 1,
+  "title": "엄마한테 안부 문자",
+  "timeSlot": "MORNING",
+  "time": "08:30",
+  "days": ["MON", "WED", "FRI"],
+  "personId": 5,
+  "personName": "엄마",
+  "actionType": "CONTACT",
+  "enabled": true,
+  "streak": 0,
+  "completedToday": false,
+  "createdAt": "2026-05-07T10:00:00Z"
+}
+```
+
+### GET /api/routines
+```json
+// Query: ?timeSlot=MORNING (선택)
+// Response 200
+{
+  "routines": [
+    {
+      "id": 1,
+      "title": "엄마한테 안부 문자",
+      "timeSlot": "MORNING",
+      "time": "08:30",
+      "days": ["MON", "WED", "FRI"],
+      "personName": "엄마",
+      "actionType": "CONTACT",
+      "enabled": true,
+      "streak": 5,
+      "completedToday": false
+    }
+  ]
+}
+```
+
+### POST /api/routines/{routineId}/complete
+```json
+// Response 200
+{ "id": 1, "streak": 6, "completedToday": true }
+// Error 400
+{ "error": "이미 오늘 완료된 루틴입니다.", "code": "ROUTINE_ALREADY_COMPLETED" }
+```
+
+### PUT /api/routines/{routineId}
+```json
+// Request — POST와 동일 구조
+// Response 200
+```
+
+### DELETE /api/routines/{routineId}
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "루틴을 찾을 수 없습니다.", "code": "ROUTINE_NOT_FOUND" }
+```
+
+---
+
+## 5.62 Gratitude Journal (v8.1)
+
+감사 일기. 인물 태깅 + 감사 트렌드 분석.
+
+### POST /api/gratitude
+```json
+// Request
+{
+  "content": "오늘 민수가 점심을 사줬다. 감동!",
+  "personIds": [3],              // 태깅할 인물들 (선택)
+  "mood": "GRATEFUL"             // GRATEFUL | HAPPY | WARM | TOUCHED | PEACEFUL
+}
+// Response 201
+{
+  "id": 1,
+  "content": "오늘 민수가 점심을 사줬다. 감동!",
+  "personIds": [3],
+  "personNames": ["민수"],
+  "mood": "GRATEFUL",
+  "createdAt": "2026-05-07T12:00:00Z"
+}
+```
+
+### GET /api/gratitude
+```json
+// Query: ?page=0&size=20&personId=3 (선택)
+// Response 200
+{
+  "entries": [
+    {
+      "id": 1,
+      "content": "오늘 민수가 점심을 사줬다. 감동!",
+      "personNames": ["민수"],
+      "mood": "GRATEFUL",
+      "createdAt": "2026-05-07T12:00:00Z"
+    }
+  ],
+  "page": 0,
+  "totalPages": 5,
+  "totalElements": 42
+}
+```
+
+### GET /api/gratitude/trend
+```json
+// Query: ?months=6 (기본 6)
+// Response 200
+{
+  "trends": [
+    {
+      "month": "2026-05",
+      "count": 15,
+      "topPeople": ["엄마", "민수"],
+      "dominantMood": "GRATEFUL"
+    }
+  ],
+  "totalEntries": 89,
+  "longestStreak": 14,
+  "currentStreak": 3
+}
+```
+
+### DELETE /api/gratitude/{entryId}
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "감사 일기를 찾을 수 없습니다.", "code": "GRATITUDE_NOT_FOUND" }
+```
+
+---
+
+## 5.63 Conversation Starters V2 (v8.2)
+
+상황별 대화 카드 — 카테고리, 난이도, 저장 기능. (v2.2 확장)
+
+### GET /api/starters/cards
+```json
+// Query: ?personId=5&category=DEEP&difficulty=MEDIUM&count=5
+// Response 200
+{
+  "cards": [
+    {
+      "id": "uuid-string",
+      "text": "어렸을 때 가장 행복했던 순간은?",
+      "category": "DEEP",           // CASUAL | DEEP | FUN | SUPPORT | RECONNECT
+      "difficulty": "MEDIUM",       // EASY | MEDIUM | HARD
+      "personalized": true,
+      "reason": "최근 추억 관련 대화가 적음"
+    }
+  ]
+}
+```
+
+### POST /api/starters/cards/{cardId}/save
+카드 저장 (나중에 쓸 카드).
+```json
+// Response 200
+{ "id": "uuid-string", "saved": true }
+```
+
+### GET /api/starters/saved
+```json
+// Response 200
+{
+  "cards": [
+    {
+      "id": "uuid-string",
+      "text": "어렸을 때 가장 행복했던 순간은?",
+      "category": "DEEP",
+      "savedAt": "2026-05-07T10:00:00Z"
+    }
+  ]
+}
+```
+
+### DELETE /api/starters/saved/{cardId}
+```json
+// Response 204 (No Content)
+```
+
+### POST /api/starters/cards/{cardId}/used
+카드 사용 기록.
+```json
+// Request
+{ "personId": 5, "helpful": true }
+// Response 200
+{ "recorded": true }
+```
+
+---
+
+## 5.64 Relationship Insights Report V2 (v8.3)
+
+월간 AI 리포트 확장 — 비교 분석, 맞춤 추천, 하이라이트.
+
+### GET /api/reports/monthly
+```json
+// Query: ?month=2026-05 (기본 현재 월)
+// Response 200
+{
+  "month": "2026-05",
+  "summary": "이번 달 12명과 45회 대화, 전월 대비 +15%",
+  "highlights": [
+    {
+      "type": "MOST_CONNECTED",
+      "personName": "엄마",
+      "detail": "15회 대화, 감정 점수 92"
+    },
+    {
+      "type": "MOST_IMPROVED",
+      "personName": "민수",
+      "detail": "대화 빈도 3배 증가"
+    },
+    {
+      "type": "NEEDS_ATTENTION",
+      "personName": "영희",
+      "detail": "3주째 연락 없음"
+    }
+  ],
+  "stats": {
+    "totalConversations": 45,
+    "totalMemories": 89,
+    "avgSentiment": 0.72,
+    "activePeople": 12,
+    "goalsCompleted": 8,
+    "gratitudeEntries": 15
+  },
+  "recommendations": [
+    {
+      "action": "영희에게 안부 전화",
+      "reason": "3주 이상 연락 없음, 관계 점수 하락 중",
+      "priority": "HIGH"
+    }
+  ],
+  "comparison": {
+    "conversationsChange": 15,
+    "memoriesChange": -5,
+    "sentimentChange": 0.05,
+    "newPeople": 2
+  },
+  "generatedAt": "2026-05-07T10:00:00Z"
+}
+```
+
+### GET /api/reports/yearly
+```json
+// Query: ?year=2026 (기본 현재 연도)
+// Response 200
+{
+  "year": 2026,
+  "summary": "올해 48명과 520회 대화",
+  "monthlyTrends": [
+    { "month": "2026-01", "conversations": 30, "sentiment": 0.65 },
+    { "month": "2026-02", "conversations": 35, "sentiment": 0.68 }
+  ],
+  "topPeople": [
+    { "personName": "엄마", "totalConversations": 120, "avgSentiment": 0.9 }
+  ],
+  "yearHighlights": [
+    "3월에 가장 많은 감사 일기 작성 (28건)",
+    "엄마와의 대화 빈도가 꾸준히 증가"
+  ],
+  "generatedAt": "2026-05-07T10:00:00Z"
+}
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -4820,6 +5106,9 @@ nickname: Aidy 테스터
 | INVALID_PERSONA | 400 | 존재하지 않는 페르소나 | — |
 | EVENT_NOT_FOUND | 404 | 반복 이벤트 없음 | — |
 | LIFE_EVENT_NOT_FOUND | 404 | 생애 이벤트 없음 | — |
+| ROUTINE_NOT_FOUND | 404 | 루틴 없음 | — |
+| ROUTINE_ALREADY_COMPLETED | 400 | 오늘 이미 완료된 루틴 | — |
+| GRATITUDE_NOT_FOUND | 404 | 감사 일기 없음 | — |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
 | CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
@@ -4974,3 +5263,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v7.5.0 | 2026-05-07 | Life Events — 인물별 생애 이벤트 추적 (autoceo-s41-R1) |
 | v7.6.0 | 2026-05-07 | Conversation Coaching — AI 실시간 대화 코칭 팁 (autoceo-s41-R1) |
 | v7.7.0 | 2026-05-07 | Relationship Forecast — AI 관계 건강 예측 (autoceo-s41-R1) |
+| v8.0.0 | 2026-05-07 | Daily Routine — 일과 기반 관계 행동 루틴 (autoceo-s42-R1) |
+| v8.1.0 | 2026-05-07 | Gratitude Journal — 감사 일기 + 트렌드 (autoceo-s42-R1) |
+| v8.2.0 | 2026-05-07 | Conversation Starters V2 — 카테고리별 대화 카드 (autoceo-s42-R1) |
+| v8.3.0 | 2026-05-07 | Insights Report V2 — 월간/연간 리포트 확장 (autoceo-s42-R1) |

@@ -4489,6 +4489,260 @@ END:VCALENDAR
 
 ---
 
+## 5.57 Recurring Events (v7.4)
+
+기념일 시스템 확장 — 반복 이벤트 (매주/격주/매월/매년) CRUD + 리마인더 연동.
+
+### POST /api/people/{personId}/events
+```json
+// Request
+{
+  "title": "가족 저녁",
+  "description": "매주 일요일 가족 모임",
+  "recurrence": "WEEKLY",       // WEEKLY | BIWEEKLY | MONTHLY | YEARLY | ONCE
+  "dayOfWeek": "SUNDAY",        // WEEKLY/BIWEEKLY만 (MONDAY~SUNDAY)
+  "dayOfMonth": null,           // MONTHLY만 (1~31)
+  "date": null,                 // YEARLY/ONCE만 (MM-DD 또는 YYYY-MM-DD)
+  "time": "18:00",              // HH:mm (선택)
+  "reminderMinutes": 60,        // 이벤트 전 알림 (분, 선택)
+  "color": "#4CAF50"            // 캘린더 색상 (선택)
+}
+// Response 201
+{
+  "id": 1,
+  "personId": 5,
+  "title": "가족 저녁",
+  "description": "매주 일요일 가족 모임",
+  "recurrence": "WEEKLY",
+  "dayOfWeek": "SUNDAY",
+  "dayOfMonth": null,
+  "date": null,
+  "time": "18:00",
+  "reminderMinutes": 60,
+  "color": "#4CAF50",
+  "nextOccurrence": "2026-05-11T18:00:00Z",
+  "createdAt": "2026-05-07T10:00:00Z"
+}
+// Error 404
+{ "error": "인물을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+### GET /api/people/{personId}/events
+```json
+// Response 200
+{
+  "events": [
+    {
+      "id": 1,
+      "title": "가족 저녁",
+      "recurrence": "WEEKLY",
+      "nextOccurrence": "2026-05-11T18:00:00Z",
+      "reminderMinutes": 60,
+      "color": "#4CAF50"
+    }
+  ]
+}
+```
+
+### GET /api/events/upcoming
+전체 인물 대상 다가오는 이벤트 (7일 내).
+```json
+// Query: ?days=7 (기본 7)
+// Response 200
+{
+  "events": [
+    {
+      "id": 1,
+      "personId": 5,
+      "personName": "엄마",
+      "title": "가족 저녁",
+      "occurrence": "2026-05-11T18:00:00Z",
+      "recurrence": "WEEKLY",
+      "color": "#4CAF50"
+    }
+  ]
+}
+```
+
+### PUT /api/people/{personId}/events/{eventId}
+```json
+// Request — POST와 동일 구조
+// Response 200 — POST 응답과 동일
+// Error 404
+{ "error": "이벤트를 찾을 수 없습니다.", "code": "EVENT_NOT_FOUND" }
+```
+
+### DELETE /api/people/{personId}/events/{eventId}
+```json
+// Response 204 (No Content)
+```
+
+---
+
+## 5.58 Life Events (v7.5)
+
+인물별 주요 생애 이벤트 기록. AI 대화 시 맥락으로 제공.
+
+### POST /api/people/{personId}/life-events
+```json
+// Request
+{
+  "title": "이직",
+  "description": "네이버에서 카카오로 이직",
+  "category": "CAREER",         // CAREER | EDUCATION | FAMILY | HEALTH | RESIDENCE | RELATIONSHIP | OTHER
+  "date": "2026-04-15",
+  "impact": "POSITIVE"          // POSITIVE | NEGATIVE | NEUTRAL
+}
+// Response 201
+{
+  "id": 1,
+  "personId": 5,
+  "title": "이직",
+  "description": "네이버에서 카카오로 이직",
+  "category": "CAREER",
+  "date": "2026-04-15",
+  "impact": "POSITIVE",
+  "createdAt": "2026-05-07T10:00:00Z"
+}
+```
+
+### GET /api/people/{personId}/life-events
+```json
+// Query: ?category=CAREER (선택)
+// Response 200
+{
+  "lifeEvents": [
+    {
+      "id": 1,
+      "title": "이직",
+      "category": "CAREER",
+      "date": "2026-04-15",
+      "impact": "POSITIVE"
+    }
+  ]
+}
+```
+
+### PUT /api/people/{personId}/life-events/{eventId}
+```json
+// Request — POST와 동일
+// Response 200
+// Error 404
+{ "error": "생애 이벤트를 찾을 수 없습니다.", "code": "LIFE_EVENT_NOT_FOUND" }
+```
+
+### DELETE /api/people/{personId}/life-events/{eventId}
+```json
+// Response 204 (No Content)
+```
+
+---
+
+## 5.59 Conversation Coaching (v7.6)
+
+채팅 중 AI가 대화 팁을 실시간 제안. 인물의 선호, 최근 이벤트, 감정 트렌드 기반.
+
+### GET /api/chat/coaching/{personId}
+해당 인물과의 대화에 활용할 코칭 팁.
+```json
+// Response 200
+{
+  "personId": 5,
+  "personName": "엄마",
+  "tips": [
+    {
+      "type": "TOPIC_SUGGEST",       // TOPIC_SUGGEST | TONE_ADVICE | AVOID_TOPIC | FOLLOW_UP | LIFE_EVENT
+      "content": "최근 이직한 이야기를 물어보세요",
+      "reason": "2주 전 카카오 이직 기록",
+      "priority": "HIGH"            // HIGH | MEDIUM | LOW
+    },
+    {
+      "type": "TONE_ADVICE",
+      "content": "최근 불안감이 감지되었습니다. 공감적 톤으로 대화하세요",
+      "reason": "최근 3개 메모리 감정: ANXIETY",
+      "priority": "HIGH"
+    },
+    {
+      "type": "FOLLOW_UP",
+      "content": "지난주 '건강검진 예약' 이야기의 후속을 물어보세요",
+      "reason": "미완료 메모리 감지",
+      "priority": "MEDIUM"
+    }
+  ],
+  "overallAdvice": "공감형 톤 추천, 최근 변화가 많은 시기",
+  "generatedAt": "2026-05-07T10:00:00Z"
+}
+```
+
+### POST /api/chat/coaching/{personId}/feedback
+코칭 팁 유용성 피드백.
+```json
+// Request
+{
+  "tipType": "TOPIC_SUGGEST",
+  "helpful": true
+}
+// Response 200
+{ "recorded": true }
+```
+
+---
+
+## 5.60 Relationship Forecast (v7.7)
+
+AI가 현재 트렌드를 분석해 향후 30일 관계 건강 예측.
+
+### GET /api/people/{personId}/forecast
+```json
+// Response 200
+{
+  "personId": 5,
+  "personName": "엄마",
+  "currentScore": 85,
+  "forecastScore": 78,
+  "trend": "DECLINING",           // IMPROVING | STABLE | DECLINING
+  "confidence": 0.72,             // 0~1
+  "factors": [
+    {
+      "factor": "연락 빈도 감소",
+      "impact": -5,
+      "suggestion": "이번 주 안에 전화하세요"
+    },
+    {
+      "factor": "최근 긍정적 감정 메모리 증가",
+      "impact": +3,
+      "suggestion": null
+    }
+  ],
+  "riskLevel": "LOW",             // LOW | MEDIUM | HIGH | CRITICAL
+  "nextCheckDate": "2026-05-14",
+  "generatedAt": "2026-05-07T10:00:00Z"
+}
+```
+
+### GET /api/forecast/summary
+전체 인물 예측 요약.
+```json
+// Response 200
+{
+  "forecasts": [
+    {
+      "personId": 5,
+      "personName": "엄마",
+      "currentScore": 85,
+      "forecastScore": 78,
+      "trend": "DECLINING",
+      "riskLevel": "LOW"
+    }
+  ],
+  "atRiskCount": 2,
+  "improvingCount": 5,
+  "stableCount": 8
+}
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -4564,6 +4818,8 @@ nickname: Aidy 테스터
 | GOAL_ALREADY_COMPLETED_TODAY | 400 | 오늘 이미 완료된 목표 | — |
 | INVALID_EMOTION | 400 | 유효하지 않은 감정 값 | — |
 | INVALID_PERSONA | 400 | 존재하지 않는 페르소나 | — |
+| EVENT_NOT_FOUND | 404 | 반복 이벤트 없음 | — |
+| LIFE_EVENT_NOT_FOUND | 404 | 생애 이벤트 없음 | — |
 | AI_TIMEOUT | 504 | AI 응답 시간 초과 | ✅ |
 | CONNECTION_NOT_FOUND | 404 | 메모리 연결 없음 | — |
 | CONNECTION_EXISTS | 409 | 메모리 연결 이미 존재 | — |
@@ -4714,3 +4970,7 @@ Retry-After: 30                // 재시도까지 대기 초
 | v7.1.0 | 2026-05-05 | Relationship Goals — 인물별 커스텀 목표 + 진척 추적 (autoceo-s40-R1) |
 | v7.2.0 | 2026-05-05 | Memory Emotions — 감정 태깅 + 트렌드 분석 (autoceo-s40-R1) |
 | v7.3.0 | 2026-05-05 | AI Chat Personas — 인물별 AI 대화 스타일 설정 (autoceo-s40-R1) |
+| v7.4.0 | 2026-05-07 | Recurring Events — 반복 이벤트 CRUD + 리마인더 (autoceo-s41-R1) |
+| v7.5.0 | 2026-05-07 | Life Events — 인물별 생애 이벤트 추적 (autoceo-s41-R1) |
+| v7.6.0 | 2026-05-07 | Conversation Coaching — AI 실시간 대화 코칭 팁 (autoceo-s41-R1) |
+| v7.7.0 | 2026-05-07 | Relationship Forecast — AI 관계 건강 예측 (autoceo-s41-R1) |

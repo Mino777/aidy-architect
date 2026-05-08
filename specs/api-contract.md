@@ -5029,6 +5029,536 @@ AI가 현재 트렌드를 분석해 향후 30일 관계 건강 예측.
 
 ---
 
+## 5.65 AI Conversation Insights (v8.4)
+
+대화 종료 후 AI가 자동 생성하는 깊이 있는 대화 분석. 감정 흐름, 핵심 주제, 관계 변화 감지.
+
+### GET /api/chat/insights
+
+최근 대화 인사이트 목록 조회.
+
+```json
+// Query: ?limit=10&offset=0
+// Response 200
+{
+  "insights": [
+    {
+      "id": 1,
+      "chatSessionId": "session-abc123",
+      "createdAt": "2026-05-08T10:30:00Z",
+      "summary": "엄마와의 건강 상담 — 긍정적 마무리",
+      "emotionFlow": ["worried", "hopeful", "relieved"],
+      "keyTopics": ["건강검진", "운동습관", "식단"],
+      "relatedPeople": ["엄마"],
+      "relationshipChange": {
+        "personName": "엄마",
+        "direction": "IMPROVED",
+        "detail": "건강 걱정을 공유하며 유대감 강화"
+      },
+      "actionItems": [
+        "엄마 건강검진 결과 다음 주 확인",
+        "운동 루틴 함께 시작하기 제안"
+      ]
+    }
+  ],
+  "total": 25,
+  "hasMore": true
+}
+```
+
+**emotionFlow**: 대화 중 감정 변화 순서 (3~5개). 허용 값: `happy`, `sad`, `worried`, `hopeful`, `relieved`, `angry`, `neutral`, `excited`, `grateful`, `confused`
+
+**direction enum**: `IMPROVED` | `STABLE` | `DECLINED` | `NEW`
+
+### GET /api/chat/insights/{id}
+
+특정 인사이트 상세 조회.
+
+```json
+// Response 200
+{
+  "id": 1,
+  "chatSessionId": "session-abc123",
+  "createdAt": "2026-05-08T10:30:00Z",
+  "summary": "엄마와의 건강 상담 — 긍정적 마무리",
+  "emotionFlow": ["worried", "hopeful", "relieved"],
+  "keyTopics": ["건강검진", "운동습관", "식단"],
+  "relatedPeople": ["엄마"],
+  "relationshipChange": {
+    "personName": "엄마",
+    "direction": "IMPROVED",
+    "detail": "건강 걱정을 공유하며 유대감 강화"
+  },
+  "actionItems": [
+    "엄마 건강검진 결과 다음 주 확인",
+    "운동 루틴 함께 시작하기 제안"
+  ],
+  "detailedAnalysis": "이 대화에서 사용자는 엄마의 건강검진 결과에 대한 걱정을 표현했으며, AI가 긍정적인 방향으로 안내하여 구체적인 행동 계획을 수립함."
+}
+// Error 404
+{ "error": "인사이트를 찾을 수 없습니다.", "code": "INSIGHT_NOT_FOUND" }
+```
+
+### DELETE /api/chat/insights/{id}
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "인사이트를 찾을 수 없습니다.", "code": "INSIGHT_NOT_FOUND" }
+```
+
+---
+
+## 5.66 Relationship Journal Prompts (v8.5)
+
+매일 AI가 생성하는 관계 성찰 프롬프트. 사용자가 답변하면 저널 엔트리로 저장.
+
+### GET /api/journal/prompts/today
+
+오늘의 성찰 프롬프트 조회 (매일 최대 3개 자동 생성).
+
+```json
+// Response 200
+{
+  "date": "2026-05-08",
+  "prompts": [
+    {
+      "id": 1,
+      "question": "오늘 가장 감사한 사람은 누구인가요? 그 이유는?",
+      "category": "GRATITUDE",
+      "relatedPerson": "민수",
+      "context": "최근 민수와 깊은 대화를 나눴어요"
+    },
+    {
+      "id": 2,
+      "question": "이번 주에 연락하지 못한 소중한 사람이 있나요?",
+      "category": "REFLECTION",
+      "relatedPerson": null,
+      "context": null
+    }
+  ]
+}
+```
+
+**category enum**: `GRATITUDE` | `REFLECTION` | `GROWTH` | `CONNECTION` | `MEMORY`
+
+### POST /api/journal/entries
+
+프롬프트에 대한 답변 저장 (저널 엔트리 생성).
+
+```json
+// Request
+{
+  "promptId": 1,
+  "content": "오늘 민수가 갑자기 커피를 사줬다. 별것 아닌 것 같지만 정말 감동받았다.",
+  "mood": "grateful"
+}
+// Response 201
+{
+  "id": 1,
+  "promptId": 1,
+  "content": "오늘 민수가 갑자기 커피를 사줬다. 별것 아닌 것 같지만 정말 감동받았다.",
+  "mood": "grateful",
+  "createdAt": "2026-05-08T20:00:00Z",
+  "extractedMemories": [
+    { "id": 100, "content": "민수가 커피를 사줌, 감동받음" }
+  ]
+}
+```
+
+**mood enum**: `happy`, `grateful`, `thoughtful`, `sad`, `motivated`, `peaceful`, `neutral`
+
+### GET /api/journal/entries
+
+저널 엔트리 목록 조회.
+
+```json
+// Query: ?limit=20&offset=0&from=2026-05-01&to=2026-05-08
+// Response 200
+{
+  "entries": [
+    {
+      "id": 1,
+      "promptId": 1,
+      "promptQuestion": "오늘 가장 감사한 사람은 누구인가요?",
+      "content": "...",
+      "mood": "grateful",
+      "createdAt": "2026-05-08T20:00:00Z"
+    }
+  ],
+  "total": 15,
+  "hasMore": false
+}
+```
+
+### GET /api/journal/stats
+
+저널 통계 조회.
+
+```json
+// Response 200
+{
+  "totalEntries": 45,
+  "currentStreak": 7,
+  "longestStreak": 14,
+  "moodDistribution": {
+    "grateful": 15,
+    "happy": 10,
+    "thoughtful": 8,
+    "peaceful": 5,
+    "motivated": 4,
+    "sad": 2,
+    "neutral": 1
+  },
+  "weeklyAverage": 4.2,
+  "topMentionedPeople": [
+    { "personName": "엄마", "count": 12 },
+    { "personName": "민수", "count": 8 }
+  ]
+}
+```
+
+### DELETE /api/journal/entries/{id}
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "저널 엔트리를 찾을 수 없습니다.", "code": "JOURNAL_NOT_FOUND" }
+```
+
+---
+
+## 5.67 Contact Activity Summary (v8.6)
+
+인물별 최근 활동 종합 요약. 모든 상호작용(채팅, 메모리, 감정, 이벤트 등)을 하나의 뷰로 통합.
+
+### GET /api/people/{personId}/activity-summary
+
+```json
+// Query: ?days=30 (기본 30일)
+// Response 200
+{
+  "personId": 1,
+  "personName": "엄마",
+  "period": { "from": "2026-04-08", "to": "2026-05-08" },
+  "overview": {
+    "totalInteractions": 25,
+    "chatCount": 15,
+    "memoryCount": 30,
+    "noteCount": 5,
+    "lastContactAt": "2026-05-07T18:00:00Z",
+    "daysSinceLastContact": 1
+  },
+  "emotionTrend": {
+    "avgSentiment": 0.78,
+    "trend": "IMPROVING",
+    "dominantEmotions": ["happy", "grateful"]
+  },
+  "recentHighlights": [
+    {
+      "type": "MEMORY",
+      "content": "엄마가 새 운동 시작했다고 함",
+      "date": "2026-05-06T10:00:00Z"
+    },
+    {
+      "type": "MILESTONE",
+      "content": "100번째 대화 달성",
+      "date": "2026-05-05T14:00:00Z"
+    }
+  ],
+  "upcomingEvents": [
+    {
+      "type": "ANNIVERSARY",
+      "title": "엄마 생신",
+      "date": "2026-05-15",
+      "daysUntil": 7
+    }
+  ],
+  "aiSummary": "지난 30일간 엄마와의 관계가 더욱 깊어졌습니다. 건강 관련 대화가 증가했으며, 서로의 일상을 적극적으로 공유하고 있어요."
+}
+// Error 404
+{ "error": "인물을 찾을 수 없습니다.", "code": "PERSON_NOT_FOUND" }
+```
+
+**trend enum**: `IMPROVING` | `STABLE` | `DECLINING`
+
+**highlight type enum**: `MEMORY` | `MILESTONE` | `LIFE_EVENT` | `CHAT` | `NOTE`
+
+---
+
+## 5.68 Smart Auto-Grouping (v8.7)
+
+AI가 소통 패턴, 메모리, 관계 유형을 분석하여 인물을 자동으로 그룹핑. 기존 People Groups(v3.7)의 수동 그룹핑을 보완.
+
+### POST /api/people/auto-group
+
+AI 자동 그룹핑 실행. 현재 모든 인물을 분석하여 추천 그룹 생성.
+
+```json
+// Response 200
+{
+  "suggestedGroups": [
+    {
+      "id": 1,
+      "name": "자주 연락하는 가족",
+      "reason": "주 3회 이상 대화하는 가족 구성원",
+      "members": [
+        { "personId": 1, "personName": "엄마", "confidence": 0.95 },
+        { "personId": 2, "personName": "아빠", "confidence": 0.92 }
+      ],
+      "pattern": "FAMILY_FREQUENT"
+    },
+    {
+      "id": 2,
+      "name": "직장 동료",
+      "reason": "업무 관련 대화가 많은 인물들",
+      "members": [
+        { "personId": 5, "personName": "민수", "confidence": 0.88 },
+        { "personId": 6, "personName": "영희", "confidence": 0.85 }
+      ],
+      "pattern": "WORK_COLLEAGUES"
+    }
+  ],
+  "analyzedPeopleCount": 15,
+  "generatedAt": "2026-05-08T10:00:00Z"
+}
+```
+
+**pattern enum**: `FAMILY_FREQUENT` | `FAMILY_DISTANT` | `WORK_COLLEAGUES` | `CLOSE_FRIENDS` | `CASUAL_FRIENDS` | `MENTORS` | `NEW_CONNECTIONS` | `NEEDS_ATTENTION` | `CUSTOM`
+
+### POST /api/people/auto-group/{id}/apply
+
+추천 그룹을 실제 People Group으로 적용.
+
+```json
+// Request (선택적 — 그룹명 변경 가능)
+{ "name": "우리 가족" }
+// Response 201
+{
+  "groupId": 10,
+  "name": "우리 가족",
+  "memberCount": 2,
+  "appliedAt": "2026-05-08T10:05:00Z"
+}
+// Error 404
+{ "error": "추천 그룹을 찾을 수 없습니다.", "code": "AUTO_GROUP_NOT_FOUND" }
+```
+
+---
+
+## 5.69 Relationship Digest Preview (v9.0)
+
+주간 관계 다이제스트 — HTML 프리뷰 생성 및 조회. (Phase 1: 이메일 발송 없이 앱 내 프리뷰만)
+
+### GET /api/digest/weekly
+
+이번 주 다이제스트 조회 (없으면 AI가 실시간 생성).
+
+```json
+// Response 200
+{
+  "id": 1,
+  "weekStart": "2026-05-04",
+  "weekEnd": "2026-05-10",
+  "summary": "이번 주 8명과 22회 대화. 엄마와 가장 많이 소통.",
+  "highlights": [
+    { "icon": "🎉", "text": "민수 이직 축하 대화" },
+    { "icon": "📞", "text": "아빠와 3일 연속 통화" }
+  ],
+  "stats": {
+    "totalConversations": 22,
+    "activePeople": 8,
+    "newMemories": 35,
+    "avgSentiment": 0.75
+  },
+  "recommendations": [
+    { "text": "영희에게 연락해보세요 (2주째 대화 없음)", "priority": "HIGH" }
+  ],
+  "generatedAt": "2026-05-08T09:00:00Z"
+}
+```
+
+### GET /api/digest/weekly/history
+
+과거 다이제스트 목록.
+
+```json
+// Query: ?limit=10&offset=0
+// Response 200
+{
+  "digests": [
+    { "id": 1, "weekStart": "2026-05-04", "weekEnd": "2026-05-10", "summary": "..." }
+  ],
+  "total": 4,
+  "hasMore": false
+}
+```
+
+---
+
+## 5.70 AI Memory Questions (v9.1)
+
+AI가 메모리가 부족한 영역에 대해 능동적으로 질문. 사용자의 답변은 새 메모리로 자동 저장.
+
+### GET /api/memory-questions
+
+오늘의 AI 질문 목록 (매일 최대 3개 생성).
+
+```json
+// Response 200
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "엄마의 취미는 뭐예요?",
+      "reason": "엄마에 대한 취향/취미 메모리가 없어요",
+      "category": "preference",
+      "relatedPersonName": "엄마",
+      "status": "PENDING"
+    },
+    {
+      "id": 2,
+      "question": "최근 민수와 뭘 했어요?",
+      "reason": "민수와의 최근 활동 기록이 2주 전이에요",
+      "category": "general",
+      "relatedPersonName": "민수",
+      "status": "PENDING"
+    }
+  ]
+}
+```
+
+**status enum**: `PENDING` | `ANSWERED` | `SKIPPED`
+
+### POST /api/memory-questions/{id}/answer
+
+질문에 답변 → 자동 메모리 생성.
+
+```json
+// Request
+{ "answer": "엄마는 등산을 좋아하세요. 주말마다 북한산 가세요." }
+// Response 200
+{
+  "id": 1,
+  "status": "ANSWERED",
+  "createdMemory": {
+    "id": 200,
+    "content": "엄마는 등산을 좋아함. 주말마다 북한산",
+    "personName": "엄마",
+    "category": "preference"
+  }
+}
+```
+
+### POST /api/memory-questions/{id}/skip
+
+질문 건너뛰기.
+
+```json
+// Response 200
+{ "id": 1, "status": "SKIPPED" }
+```
+
+---
+
+## 5.71 People Notes (v9.2)
+
+인물별 자유형 메모. Quick Notes(§ 5.19)와 달리 특정 인물에 귀속.
+
+### GET /api/people/{personId}/notes
+
+```json
+// Query: ?limit=20&offset=0
+// Response 200
+{
+  "notes": [
+    {
+      "id": 1,
+      "content": "다음에 만나면 이직 어떻게 됐는지 물어보기",
+      "pinned": false,
+      "createdAt": "2026-05-08T10:00:00Z",
+      "updatedAt": "2026-05-08T10:00:00Z"
+    }
+  ],
+  "total": 5,
+  "hasMore": false
+}
+```
+
+### POST /api/people/{personId}/notes
+
+```json
+// Request
+{ "content": "다음에 만나면 이직 어떻게 됐는지 물어보기" }
+// Response 201
+{
+  "id": 1,
+  "content": "다음에 만나면 이직 어떻게 됐는지 물어보기",
+  "pinned": false,
+  "createdAt": "2026-05-08T10:00:00Z",
+  "updatedAt": "2026-05-08T10:00:00Z"
+}
+```
+
+### PUT /api/people/{personId}/notes/{id}
+
+```json
+// Request
+{ "content": "이직 결과 확인 — 합격!", "pinned": true }
+// Response 200
+{ "id": 1, "content": "이직 결과 확인 — 합격!", "pinned": true, "updatedAt": "..." }
+// Error 404
+{ "error": "노트를 찾을 수 없습니다.", "code": "NOTE_NOT_FOUND" }
+```
+
+### DELETE /api/people/{personId}/notes/{id}
+
+```json
+// Response 204 (No Content)
+// Error 404
+{ "error": "노트를 찾을 수 없습니다.", "code": "NOTE_NOT_FOUND" }
+```
+
+---
+
+## 5.72 Contact Streak Tracking (v9.3)
+
+인물별 연속 연락 일수 추적. 대화/메모리/상호작용이 있는 날을 연속 카운트.
+
+### GET /api/people/{personId}/streak
+
+```json
+// Response 200
+{
+  "personId": 1,
+  "personName": "엄마",
+  "currentStreak": 7,
+  "longestStreak": 14,
+  "lastContactDate": "2026-05-08",
+  "streakHistory": [
+    { "startDate": "2026-05-02", "endDate": "2026-05-08", "days": 7, "active": true },
+    { "startDate": "2026-04-10", "endDate": "2026-04-23", "days": 14, "active": false }
+  ]
+}
+```
+
+### GET /api/streaks/leaderboard
+
+전체 인물 스트릭 순위.
+
+```json
+// Query: ?limit=10
+// Response 200
+{
+  "leaderboard": [
+    { "personId": 1, "personName": "엄마", "currentStreak": 7, "longestStreak": 14 },
+    { "personId": 5, "personName": "민수", "currentStreak": 3, "longestStreak": 10 }
+  ]
+}
+```
+
+---
+
 ## 8. Test Account (v4.6)
 
 UI 테스트 전용 어드민 계정. 서버 시작 시 자동 시딩 (없으면 생성, 있으면 스킵).
@@ -5146,6 +5676,12 @@ nickname: Aidy 테스터
 | SUBSCRIPTION_NOT_FOUND | 404 | 캘린더 구독 없음 | — |
 | FAVORITE_NOT_FOUND | 404 | 즐겨찾기 없음 | — |
 | SUMMARY_NOT_FOUND | 404 | 대화 요약 없음 | — |
+| INSIGHT_NOT_FOUND | 404 | 대화 인사이트 없음 | — |
+| JOURNAL_NOT_FOUND | 404 | 저널 엔트리 없음 | — |
+| AUTO_GROUP_NOT_FOUND | 404 | 자동 그룹 추천 없음 | — |
+| QUESTION_NOT_FOUND | 404 | AI 질문 없음 | — |
+| QUESTION_ALREADY_ANSWERED | 400 | 이미 답변한 질문 | — |
+| NOTE_NOT_FOUND | 404 | 인물 노트 없음 | — |
 
 **클라이언트 처리 규칙**:
 - Retryable 코드(✅): 재시도 버튼 노출 권장 (사용자 재시도 허용)
@@ -5267,3 +5803,11 @@ Retry-After: 30                // 재시도까지 대기 초
 | v8.1.0 | 2026-05-07 | Gratitude Journal — 감사 일기 + 트렌드 (autoceo-s42-R1) |
 | v8.2.0 | 2026-05-07 | Conversation Starters V2 — 카테고리별 대화 카드 (autoceo-s42-R1) |
 | v8.3.0 | 2026-05-07 | Insights Report V2 — 월간/연간 리포트 확장 (autoceo-s42-R1) |
+| v8.4.0 | 2026-05-08 | AI Conversation Insights — 대화 후 AI 자동 분석 인사이트 (autoceo-s43-R1) |
+| v8.5.0 | 2026-05-08 | Relationship Journal Prompts — 매일 AI 성찰 프롬프트 + 저널 (autoceo-s43-R1) |
+| v8.6.0 | 2026-05-08 | Contact Activity Summary — 인물별 활동 종합 요약 (autoceo-s43-R1) |
+| v8.7.0 | 2026-05-08 | Smart Auto-Grouping — AI 자동 인물 그룹핑 (autoceo-s43-R1) |
+| v9.0.0 | 2026-05-08 | Relationship Digest Preview — 주간 다이제스트 프리뷰 (autoceo-s43-R7) |
+| v9.1.0 | 2026-05-08 | AI Memory Questions — AI 능동적 메모리 질문 (autoceo-s43-R7) |
+| v9.2.0 | 2026-05-08 | People Notes — 인물별 자유형 메모 (autoceo-s43-R7) |
+| v9.3.0 | 2026-05-08 | Contact Streak Tracking — 연속 연락 추적 (autoceo-s43-R7) |

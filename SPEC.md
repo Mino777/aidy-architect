@@ -85,7 +85,6 @@ Architect                          Worker
 | iOS 테스트 | `cd ~/Develop/aidy-ios && xcodebuild test -workspace ... -scheme Aidy -destination 'platform=iOS Simulator,...'` | 전체 통과, 숫자 증거 |
 | Android 빌드 | `cd ~/Develop/aidy-android && ./gradlew assembleDebug` | 에러 0 |
 | Android 테스트 | `cd ~/Develop/aidy-android && ./gradlew testDebugUnitTest` | 전체 통과, 숫자 증거 |
-| CI 상태 | `./ci-status.sh` | 모든 워커 green |
 
 > **"테스트 통과"의 정의**: `no tests to run` / `skipped`는 FAIL. 반드시 실행 숫자(`NN tests passed`)가 존재해야 한다.
 > 근거: `docs/solutions/2026-04-16-ios-tests-never-ran.md`
